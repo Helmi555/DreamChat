@@ -1,0 +1,17 @@
+export const Colors = {
+  primaryGreen: '#25D366',        // WhatsApp-style green
+  primaryBlue: '#007AFF',         // Optional accent for links/buttons
+  backgroundLight: '#FFFFFF',     // Main screen background
+  backgroundGray: '#F2F2F7',      // Input fields, cards
+
+  textPrimary: '#1C1C1E',         // Main text
+  textSecondary: '#8E8E93',       // Muted labels, timestamps
+
+  dividerGray: '#E0E0E0',         // Chat separators
+  filterActiveBg: '#E5F8EF',      // Light green highlight
+  badgeGreen: '#25D366',          // Unread badge
+
+  successGreen: '#28A745',
+  warningOrange: '#FFA500',
+  errorRed: '#FF3B30',
+};
