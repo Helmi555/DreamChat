@@ -15,41 +15,28 @@ import {
 } from "react-native";
 import WaveBackground from "./components/WaveBackground";
 import { Colors } from "../../colors";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import GradientButton from "../../components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function SignUpScreen() {
+export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const navigation: any = useNavigation();
-
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const onExitPress = () => BackHandler.exitApp();
-
   const onSubmitPress = () => {
-    if (!username || !password || !confirmPassword) {
-      setError("All fields are required.");
-      return;
+    if (username === "admin" && password === "1234") {
+      setError("");
+      navigation.replace("Home");
+    } else {
+      setError("Invalid username or password");
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setError("");
-    navigation.replace("Home");
   };
 
-  const onLoginPress = () => navigation.replace("Login");
+  const onSignUpPress = () => navigation.navigate("Register");
 
   return (
     <WaveBackground>
@@ -61,7 +48,7 @@ export default function SignUpScreen() {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.inner}>
               <View style={styles.topContainer}>
-                <Text style={styles.title}>Create Account</Text>
+                <Text style={styles.title}>Welcome Back!</Text>
               </View>
 
               <View style={styles.bottomContainer}>
@@ -106,58 +93,31 @@ export default function SignUpScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <View style={styles.inputContainer}>
-                    <Ionicons
-                      name="lock-closed-outline"
-                      size={22}
-                      color={Colors.textThirdly}
-                    />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Confirm password"
-                      placeholderTextColor={Colors.textThirdly}
-                      secureTextEntry={!showConfirmPassword}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                    />
-                    <TouchableOpacity
-                      onPress={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                    >
-                      <Ionicons
-                        name={
-                          showConfirmPassword
-                            ? "eye-off-outline"
-                            : "eye-outline"
-                        }
-                        size={22}
-                        color={Colors.textThirdly}
-                      />
-                    </TouchableOpacity>
-                  </View>
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                  {error ? (
-                    <Text style={styles.errorText}>{error}</Text>
-                  ) : null}
+                  <TouchableOpacity>
+                    <Text style={styles.forgotPasswordText}>
+                      Forgot password?
+                    </Text>
+                  </TouchableOpacity>
 
                   <View style={styles.buttonRow}>
                     <GradientButton
-                      text="Sign Up"
-                      iconName="person-add"
-                      iconSize={20}
+                      text="Login"
+                      iconName="keyboard-arrow-right"
                       onPress={onSubmitPress}
-                      width="45%"
+                      width="40%"
                       height={46}
                       loading={false}
+                      iconSize={26}
                     />
                   </View>
                 </View>
 
                 <View style={styles.footer}>
-                  <Text style={styles.footerText}>Already have an account?</Text>
-                  <TouchableOpacity onPress={onLoginPress} activeOpacity={0.8}>
-                    <Text style={styles.signUpText}>Login here</Text>
+                  <Text style={styles.footerText}>Don't have an account?</Text>
+                  <TouchableOpacity onPress={onSignUpPress} activeOpacity={0.8}>
+                    <Text style={styles.signUpText}>Sign up here</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -179,6 +139,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "flex-start",
     paddingBottom: 10,
+    //borderWidth:1,
+    //borderColor:"blue"
   },
   bottomContainer: {
     flex: 1,
@@ -186,6 +148,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingTop: 40,
+    //borderWidth:1,
+    //borderColor:"black"
   },
   title: {
     fontSize: 36,
@@ -201,6 +165,8 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     paddingVertical: 24,
     paddingHorizontal: 20,
+    //borderWidth:1,
+    //borderColor:"red"
   },
   inputContainer: {
     flexDirection: "row",
@@ -219,26 +185,50 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginHorizontal: 8,
   },
-  errorText: {
-    color: "red",
+  forgotPasswordText: {
+    alignSelf: "flex-start",
+    marginTop: 12,
+    marginLeft: 14,
+    color: Colors.textSecondary,
+    fontWeight: "600",
     fontSize: 13,
-    marginTop: 10,
-    marginLeft: 6,
-    fontWeight: "500",
   },
   buttonRow: {
     flexDirection: "row",
     width: "100%",
     justifyContent: "flex-end",
     alignItems: "flex-end",
-    marginTop: 16,
+    marginTop: 22,
+  },
+  button: {
+    flexDirection: "row",
+    height: 46,
+    width: "40%",
+    borderRadius: 22,
+    backgroundColor: Colors.badgeGreen,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 4,
+    shadowColor: Colors.badgeGreen,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 26,
-    //borderWidth:1
+    marginTop: 10,
+    marginBottom: 20,
+    //borderWidth:1,
+    //borderColor:"blue"
   },
   footerText: { color: Colors.badgeGreen, fontWeight: "500", fontSize: 16 },
   signUpText: {
@@ -246,5 +236,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 17,
     marginLeft: 6,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 13,
+    marginTop: 6,
+    marginLeft: 8,
+    alignSelf: "flex-start",
+    fontWeight: "600",
   },
 });

@@ -24,6 +24,10 @@
     },
     "web": {
       "favicon": "./assets/logos/logo.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-asset"
+    ]
   }
 }

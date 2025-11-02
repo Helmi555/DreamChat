@@ -7,11 +7,14 @@ import {
   ImageBackground,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useNavigation } from "@react-navigation/native";
 
 const MyAccountScreen: React.FC = () => {
+    const navigation: any = useNavigation();
+  
   const onBackPress = () => {};
   const onSubmitPress = () => {};
-  const onLoginPress = () => {};
+  const onLoginPress = () => {navigation.replace("Login");};
 
   return (
     <View style={styles.container}>
@@ -59,7 +62,7 @@ const MyAccountScreen: React.FC = () => {
               flexDirection: "row",
             }}
           >
-            <TouchableOpacity activeOpacity={0.85} style={styles.button}>
+            <TouchableOpacity activeOpacity={0.85} style={styles.button} onPress={onLoginPress}>
               <View style={styles.buttonInner}>
                 <Text style={styles.buttonText}>Submit</Text>
               </View>

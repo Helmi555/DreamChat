@@ -6,6 +6,7 @@ export const Colors = {
 
   textPrimary: '#1C1C1E',         // Main text
   textSecondary: '#8E8E93',       // Muted labels, timestamps
+  textThirdly: '#636366',        // Disabled text
 
   dividerGray: '#E0E0E0',         // Chat separators
   filterActiveBg: '#E5F8EF',      // Light green highlight
