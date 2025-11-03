@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import WaveBackground from "./components/WaveBackground";
 import { Colors } from "../../colors";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import GradientButton from "../../components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -28,7 +28,7 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
 
   const onSubmitPress = () => {
-    if (username === "admin" && password === "1234") {
+    if (username !== "" && password !== "") {
       setError("");
       navigation.replace("Home");
     } else {
@@ -49,6 +49,10 @@ export default function LoginScreen() {
             <View style={styles.inner}>
               <View style={styles.topContainer}>
                 <Text style={styles.title}>Welcome Back!</Text>
+                <Text style={styles.titleDescription}>
+                  Please login to your{" "}
+                  <Text style={{ color: "#fff",fontWeight:"700" }}>DreamChat</Text> account
+                </Text>
               </View>
 
               <View style={styles.bottomContainer}>
@@ -160,6 +164,13 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
+  titleDescription: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#ffffff",
+    marginLeft: 14,
+    marginTop: 4,
+  },
   card: {
     width: "100%",
     maxWidth: 400,
@@ -230,7 +241,7 @@ const styles = StyleSheet.create({
     //borderWidth:1,
     //borderColor:"blue"
   },
-  footerText: { color: Colors.badgeGreen, fontWeight: "500", fontSize: 16 },
+  footerText: { color: Colors.primaryGreen, fontWeight: "500", fontSize: 16 },
   signUpText: {
     color: Colors.successGreen,
     fontWeight: "700",

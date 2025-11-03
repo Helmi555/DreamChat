@@ -10,7 +10,7 @@ export const Colors = {
 
   dividerGray: '#E0E0E0',         // Chat separators
   filterActiveBg: '#E5F8EF',      // Light green highlight
-  badgeGreen: '#25D366',          // Unread badge
+  badgeGreen: '#5ee47f64',          // make it ligther green for badges
 
   successGreen: '#28A745',
   warningOrange: '#FFA500',

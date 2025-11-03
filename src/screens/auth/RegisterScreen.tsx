@@ -62,6 +62,9 @@ export default function SignUpScreen() {
             <View style={styles.inner}>
               <View style={styles.topContainer}>
                 <Text style={styles.title}>Create Account</Text>
+                  <Text style={styles.titleDescription}>{" "}
+                  Please create a <Text style={{ color: "#fff",fontWeight:"700" }}>DreamChat</Text> account
+                </Text>
               </View>
 
               <View style={styles.bottomContainer}>
@@ -137,9 +140,7 @@ export default function SignUpScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {error ? (
-                    <Text style={styles.errorText}>{error}</Text>
-                  ) : null}
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                   <View style={styles.buttonRow}>
                     <GradientButton
@@ -155,7 +156,9 @@ export default function SignUpScreen() {
                 </View>
 
                 <View style={styles.footer}>
-                  <Text style={styles.footerText}>Already have an account?</Text>
+                  <Text style={styles.footerText}>
+                    Already have an account?
+                  </Text>
                   <TouchableOpacity onPress={onLoginPress} activeOpacity={0.8}>
                     <Text style={styles.signUpText}>Login here</Text>
                   </TouchableOpacity>
@@ -195,6 +198,12 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.25)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
+  }, titleDescription:{
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#ffffff",
+    marginLeft: 14,
+    marginTop:4
   },
   card: {
     width: "100%",
@@ -240,7 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: 26,
     //borderWidth:1
   },
-  footerText: { color: Colors.badgeGreen, fontWeight: "500", fontSize: 16 },
+  footerText: { color: Colors.primaryGreen, fontWeight: "500", fontSize: 16 },
   signUpText: {
     color: Colors.successGreen,
     fontWeight: "700",

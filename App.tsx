@@ -7,10 +7,19 @@ import Home from './src/screens/home/Home';
 
 const Stack = createNativeStackNavigator();
 
+export type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  Home: undefined;
+};
+
+
 const App = () => {
   return (
     <NavigationContainer >
-      <Stack.Navigator screenOptions={{headerShown:false,statusBarStyle:'light'}}>
+      <Stack.Navigator 
+      initialRouteName='Login'
+      screenOptions={{headerShown:false,statusBarStyle:'light'}}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={Home} />
