@@ -20,6 +20,7 @@ const Home: React.FC = () => {
     <Tab.Navigator
       shifting={true}
       initialRouteName="Settings"
+      
       barStyle={{
         backgroundColor: Colors.backgroundLight,
         elevation:4
@@ -51,6 +52,7 @@ const Home: React.FC = () => {
       <Tab.Screen
         name="Settings"
         component={MyAccountScreen}
+        
         options={{
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-circle" size={24} color={color} />

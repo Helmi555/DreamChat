@@ -4,6 +4,7 @@ import RegisterScreen from './src/screens/auth/RegisterScreen'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Home from './src/screens/home/Home';
+import LoadingScreen from 'screens/auth/LoadingScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,11 +19,12 @@ const App = () => {
   return (
     <NavigationContainer >
       <Stack.Navigator 
-      initialRouteName='Login'
+      initialRouteName='Loading'
       screenOptions={{headerShown:false,statusBarStyle:'light'}}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Loading" component={LoadingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   )

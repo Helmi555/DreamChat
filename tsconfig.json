@@ -15,10 +15,11 @@
     "moduleResolution": "node16",
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "types": [
-      "react",
-      "react-native"
-    ]
+    "types": ["react", "react-native"],
+    "baseUrl": "./src",
+    "paths": {
+      "*": ["*"]
+    }
   },
   "include": [
     "**/*.ts",

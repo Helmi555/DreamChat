@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../colors";
+import { Colors } from "colors";
 
 interface SettingsRowProps {
   iconName: keyof typeof Ionicons.glyphMap;

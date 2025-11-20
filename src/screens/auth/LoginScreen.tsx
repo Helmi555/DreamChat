@@ -1,4 +1,4 @@
-import { useState } from "react";
+import {  useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   StyleSheet,
@@ -14,25 +14,48 @@ import {
   Platform,
 } from "react-native";
 import WaveBackground from "./components/WaveBackground";
-import { Colors } from "../../colors";
+import { Colors } from "colors";
 import { Ionicons } from "@expo/vector-icons";
-import GradientButton from "../../components/buttons/GradientButton";
+import GradientButton from "features/shared/components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "config/firebase";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const rememberedUserKey = "rememberedUser";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const navigation: any = useNavigation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const onSubmitPress = () => {
-    if (username !== "" && password !== "") {
+  const onSubmitPress = async () => {
+    if (username == "" || password === "") {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(username)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    try {
+      Keyboard.dismiss();
       setError("");
+      await signInWithEmailAndPassword(auth, username, password);
+      if (rememberMe) {
+        await AsyncStorage.setItem(rememberedUserKey, username);
+        console.info("user saved "+username)
+      }
       navigation.replace("Home");
-    } else {
-      setError("Invalid username or password");
+    } catch (error) {
+      setError("Invalid email or password.");
     }
   };
 
@@ -51,7 +74,10 @@ export default function LoginScreen() {
                 <Text style={styles.title}>Welcome Back!</Text>
                 <Text style={styles.titleDescription}>
                   Please login to your{" "}
-                  <Text style={{ color: "#fff",fontWeight:"700" }}>DreamChat</Text> account
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    DreamChat
+                  </Text>{" "}
+                  account
                 </Text>
               </View>
 
@@ -65,10 +91,15 @@ export default function LoginScreen() {
                     />
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter username"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholder="Enter email"
                       placeholderTextColor={Colors.textThirdly}
                       value={username}
-                      onChangeText={setUsername}
+                      onChangeText={(username) => {
+                        setError("");
+                        setUsername(username);
+                      }}
                     />
                   </View>
 
@@ -84,7 +115,10 @@ export default function LoginScreen() {
                       placeholderTextColor={Colors.textThirdly}
                       secureTextEntry={!showPassword}
                       value={password}
-                      onChangeText={setPassword}
+                      onChangeText={(pass) => {
+                        setError("");
+                        setPassword(pass);
+                      }}
                     />
                     <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
@@ -99,11 +133,36 @@ export default function LoginScreen() {
 
                   {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                  <TouchableOpacity>
-                    <Text style={styles.forgotPasswordText}>
-                      Forgot password?
-                    </Text>
-                  </TouchableOpacity>
+                  {/**make a radio button for remember me */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginTop: 12,
+                      paddingHorizontal: 4,
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: 0,
+                      }}
+                      onPress={() => setRememberMe(!rememberMe)}
+                    >
+                      <View style={styles.radioCircle}>
+                        {rememberMe && <View style={styles.selectedRb} />}
+                      </View>
+                      <Text style={styles.label}>Remember Me</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity>
+                      <Text style={styles.forgotPasswordText}>
+                        Forgot password?
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
                   <View style={styles.buttonRow}>
                     <GradientButton
@@ -143,8 +202,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "flex-start",
     paddingBottom: 10,
-    //borderWidth:1,
-    //borderColor:"blue"
   },
   bottomContainer: {
     flex: 1,
@@ -198,11 +255,10 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     alignSelf: "flex-start",
-    marginTop: 12,
     marginLeft: 14,
     color: Colors.textSecondary,
     fontWeight: "600",
-    fontSize: 13,
+    fontSize: 14,
   },
   buttonRow: {
     flexDirection: "row",
@@ -255,5 +311,28 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     alignSelf: "flex-start",
     fontWeight: "600",
+  },
+  radioCircle: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#2e7d32",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  selectedRb: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#2e7d32",
+  },
+  label: {
+    fontSize: 16,
+    color: "#333333ed",
+    fontWeight: "500",
   },
 });

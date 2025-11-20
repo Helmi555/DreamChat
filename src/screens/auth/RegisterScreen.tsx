@@ -12,12 +12,16 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
+  ToastAndroid,
 } from "react-native";
 import WaveBackground from "./components/WaveBackground";
-import { Colors } from "../../colors";
+import { Colors } from "colors";
 import { Ionicons } from "@expo/vector-icons";
-import GradientButton from "../../components/buttons/GradientButton";
+import GradientButton from "features/shared/components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { auth } from "config/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
@@ -32,9 +36,15 @@ export default function SignUpScreen() {
 
   const onExitPress = () => BackHandler.exitApp();
 
-  const onSubmitPress = () => {
+  const onSubmitPress = async () => {
     if (!username || !password || !confirmPassword) {
       setError("All fields are required.");
+      return;
+    }
+    //check if username is a valid email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(username)) {
+      setError("Please enter a valid email address.");
       return;
     }
     if (password.length < 6) {
@@ -45,8 +55,31 @@ export default function SignUpScreen() {
       setError("Passwords do not match.");
       return;
     }
-    setError("");
-    navigation.replace("Home");
+    try {
+      Keyboard.dismiss();
+      setError("");
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        username,
+        password
+      );
+      const user = userCredential.user;
+      await AsyncStorage.setItem("rememberedUser", username);
+      //show a small toast message for successful registration
+      ToastAndroid.show(
+        user.email + " registered successfully!",
+        ToastAndroid.SHORT
+      );
+      setTimeout(() => {
+        navigation.replace("Home");
+      }, 2200);
+    } catch (error: string | any) {
+      if (error.code === "auth/email-already-in-use") {
+        setError("This email is already registered.");
+      } else {
+        setError(error.message);
+      }
+    }
   };
 
   const onLoginPress = () => navigation.replace("Login");
@@ -62,8 +95,13 @@ export default function SignUpScreen() {
             <View style={styles.inner}>
               <View style={styles.topContainer}>
                 <Text style={styles.title}>Create Account</Text>
-                  <Text style={styles.titleDescription}>{" "}
-                  Please create a <Text style={{ color: "#fff",fontWeight:"700" }}>DreamChat</Text> account
+                <Text style={styles.titleDescription}>
+                  {" "}
+                  Please create a{" "}
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    DreamChat
+                  </Text>{" "}
+                  account
                 </Text>
               </View>
 
@@ -71,16 +109,19 @@ export default function SignUpScreen() {
                 <View style={styles.card}>
                   <View style={styles.inputContainer}>
                     <Ionicons
-                      name="person-outline"
+                      name="mail-outline"
                       size={22}
                       color={Colors.textThirdly}
                     />
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter username"
+                      placeholder="Enter email"
                       placeholderTextColor={Colors.textThirdly}
                       value={username}
-                      onChangeText={setUsername}
+                      onChangeText={(text) => {
+                        setError("");
+                        setUsername(text);
+                      }}
                     />
                   </View>
 
@@ -96,7 +137,10 @@ export default function SignUpScreen() {
                       placeholderTextColor={Colors.textThirdly}
                       secureTextEntry={!showPassword}
                       value={password}
-                      onChangeText={setPassword}
+                      onChangeText={(pass) => {
+                        setError("");
+                        setPassword(pass);
+                      }}
                     />
                     <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
@@ -121,7 +165,10 @@ export default function SignUpScreen() {
                       placeholderTextColor={Colors.textThirdly}
                       secureTextEntry={!showConfirmPassword}
                       value={confirmPassword}
-                      onChangeText={setConfirmPassword}
+                      onChangeText={(pass) => {
+                        setError("");
+                        setConfirmPassword(pass);
+                      }}
                     />
                     <TouchableOpacity
                       onPress={() =>
@@ -198,12 +245,13 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.25)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
-  }, titleDescription:{
+  },
+  titleDescription: {
     fontSize: 16,
     fontWeight: "500",
     color: "#ffffff",
     marginLeft: 14,
-    marginTop:4
+    marginTop: 4,
   },
   card: {
     width: "100%",
