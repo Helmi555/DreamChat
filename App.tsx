@@ -5,6 +5,8 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Home from './src/screens/home/Home';
 import LoadingScreen from 'screens/auth/LoadingScreen';
+import { UserProvider } from 'context/UserContext';
+import { supabase } from 'configs/supabase';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,8 +18,23 @@ export type RootStackParamList = {
 
 
 const App = () => {
+
+  // Add this test in your app
+const testSupabase = async () => {
+  try {
+    const { data, error } = await supabase.storage.listBuckets();
+    if (error) throw error;
+    console.log('✅ Supabase connection OK');
+  } catch (error) {
+    console.log('❌ Supabase connection failed:', error);
+  }
+};
+
+testSupabase()
+
   return (
     <NavigationContainer >
+      <UserProvider>
       <Stack.Navigator 
       initialRouteName='Loading'
       screenOptions={{headerShown:false,statusBarStyle:'light'}}>
@@ -26,6 +43,7 @@ const App = () => {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Loading" component={LoadingScreen} />
       </Stack.Navigator>
+      </UserProvider>
     </NavigationContainer>
   )
 }

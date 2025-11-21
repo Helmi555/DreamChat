@@ -15,9 +15,10 @@
     "@react-navigation/native": "^6.1.11",
     "@react-navigation/native-stack": "^6.9.12",
     "@supabase/supabase-js": "^2.84.0",
-    "dotenv": "^17.2.3",
+    "base64-arraybuffer": "^1.0.2",
     "expo": "~53.0.22",
     "expo-asset": "~11.1.7",
+    "expo-file-system": "~18.1.11",
     "expo-font": "~13.3.2",
     "expo-image-picker": "~16.1.4",
     "expo-linear-gradient": "~14.1.5",
@@ -34,6 +35,7 @@
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.73.0",
     "babel-plugin-module-resolver": "^5.0.2",
+    "react-native-dotenv": "^3.4.11",
     "typescript": "~5.8.3"
   },
   "private": true

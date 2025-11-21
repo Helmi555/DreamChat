@@ -1,4 +1,4 @@
-import {  useState } from "react";
+import { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   StyleSheet,
@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import GradientButton from "features/shared/components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "config/firebase";
+import { auth } from "configs/firebase";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -48,10 +48,10 @@ export default function LoginScreen() {
     try {
       Keyboard.dismiss();
       setError("");
-      await signInWithEmailAndPassword(auth, username, password);
+      const user=await signInWithEmailAndPassword(auth, username, password);
       if (rememberMe) {
-        await AsyncStorage.setItem(rememberedUserKey, username);
-        console.info("user saved "+username)
+        await AsyncStorage.setItem(rememberedUserKey, JSON.stringify(user));
+        console.info("user saved " + username);
       }
       navigation.replace("Home");
     } catch (error) {

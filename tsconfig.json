@@ -24,7 +24,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "src/configs/supabase.js", "src/configs/firebase.js"  ],
   "exclude": [
     "node_modules"
   ],

@@ -19,9 +19,16 @@ import { Colors } from "colors";
 import { Ionicons } from "@expo/vector-icons";
 import GradientButton from "features/shared/components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { auth } from "config/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { getDatabase, ref, set } from "firebase/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { auth } from "configs/firebase"; 
+import app from "configs/firebase";
+import { User } from "types/User";
+
+
+const PROFILES="profiles"
+
 
 export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
@@ -36,52 +43,62 @@ export default function SignUpScreen() {
 
   const onExitPress = () => BackHandler.exitApp();
 
-  const onSubmitPress = async () => {
-    if (!username || !password || !confirmPassword) {
-      setError("All fields are required.");
-      return;
-    }
-    //check if username is a valid email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(username)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    try {
-      Keyboard.dismiss();
-      setError("");
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        username,
-        password
-      );
-      const user = userCredential.user;
-      await AsyncStorage.setItem("rememberedUser", username);
-      //show a small toast message for successful registration
-      ToastAndroid.show(
-        user.email + " registered successfully!",
-        ToastAndroid.SHORT
-      );
-      setTimeout(() => {
-        navigation.replace("Home");
-      }, 2200);
-    } catch (error: string | any) {
-      if (error.code === "auth/email-already-in-use") {
-        setError("This email is already registered.");
-      } else {
-        setError(error.message);
-      }
-    }
-  };
+const db = getDatabase(app);
 
+const onSubmitPress = async () => {
+  if (!username || !password || !confirmPassword) {
+    setError("All fields are required.");
+    return;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(username)) {
+    setError("Please enter a valid email address.");
+    return;
+  }
+  if (password.length < 6) {
+    setError("Password must be at least 6 characters.");
+    return;
+  }
+  if (password !== confirmPassword) {
+    setError("Passwords do not match.");
+    return;
+  }
+
+  try {
+    Keyboard.dismiss();
+    setError("");
+
+    // 1 Create Auth user
+    const userCredential = await createUserWithEmailAndPassword(auth, username, password);
+    const user = userCredential.user;
+
+    // 2️ Store profile in Realtime DB under profiles/{uid}
+
+    const newUser:User={
+      id: user.uid,
+      email: user.email!,
+    
+    }
+
+    await set(ref(db, PROFILES+`/${user.uid}`), newUser);
+
+    // 3️⃣ Remember user locally
+    await AsyncStorage.setItem("rememberedUser", JSON.stringify(newUser));
+
+    // 4️⃣ Toast + navigation
+    ToastAndroid.show(`${user.email} registered successfully!`, ToastAndroid.SHORT);
+    setTimeout(() => {
+      navigation.replace("Home");
+    }, 2200);
+
+  } catch (error: any) {
+    if (error.code === "auth/email-already-in-use") {
+      setError("This email is already registered.");
+    } else {
+      setError(error.message);
+    }
+  }
+};
   const onLoginPress = () => navigation.replace("Login");
 
   return (

@@ -1,11 +1,13 @@
-import React, { useEffect } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, StyleSheet, Dimensions, Text, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Path } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp } from "@react-navigation/native";
 import { Colors } from "colors";
 import AnimatedDots from "features/shared/components/elements/AnimatedDots";
+import { useUser } from "context/UserContext";
+import { auth } from "configs/firebase";
 
 const { width, height } = Dimensions.get("window");
 const rememberedUserKey = "rememberedUser";
@@ -28,15 +30,59 @@ const WhatsAppLogo = ({ size = 120 }) => (
 );
 
 export default function LoadingScreen({ navigation }: LoadingScreenProps) {
+  const { setCurrentUser } = useUser();
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  // Animation sequence
+  Animated.parallel([
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }),
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }),
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 10,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ),
+  ]).start();
+
   useEffect(() => {
     const checkCredentials = async () => {
-      await new Promise<void>(resolve => setTimeout(resolve, 3000));
+      await new Promise<void>((resolve) => setTimeout(resolve, 2000));
 
-      const savedEmail = await AsyncStorage.getItem(rememberedUserKey);
-      console.info("User is "+savedEmail)
-      if (savedEmail) {
-        navigation.replace("Home");
-      } else {
+      try {
+        const currentAuthUser = auth.currentUser;
+
+        if (currentAuthUser) {
+          // User is authenticated - go to Home
+          console.info("User authenticated:", currentAuthUser.email);
+          navigation.replace("Home");
+        } else {
+          // No authenticated user - go to Login
+          console.info("No authenticated user, going to Login");
+          await AsyncStorage.removeItem(rememberedUserKey); // Clean up old storage
+          navigation.replace("Login");
+        }
+      } catch (error) {
+        console.error("Error checking credentials:", error);
         navigation.replace("Login");
       }
     };
@@ -46,7 +92,7 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
   return (
     <LinearGradient
       // Green gradient background
-      colors={[Colors.primaryGreen, Colors.successGreen ]}
+      colors={[Colors.primaryGreen, Colors.successGreen]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -54,14 +100,42 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
       {/* Main Content */}
       <View style={styles.content}>
         <WhatsAppLogo size={140} />
-        
+
         <View style={styles.textContainer}>
+          <Animated.View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              marginTop: 0,
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                fontWeight: "300",
+                fontStyle: "italic",
+                fontSize: 32,
+              }}
+            >
+              Dream{" "}
+            </Text>
+            <Text
+              style={{
+                color: Colors.filterActiveBg,
+                fontWeight: "800",
+                fontSize: 34,
+              }}
+            >
+              CHAT
+            </Text>
+          </Animated.View>
           <AnimatedDots />
         </View>
       </View>
 
-
-      {/* Security Badge */}
       <View style={styles.securityBadge}>
         <Svg width={24} height={24} viewBox="0 0 24 24">
           <Path
@@ -97,10 +171,10 @@ const styles = StyleSheet.create({
   securityBadge: {
     position: "absolute",
     bottom: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     padding: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
 });

@@ -5,6 +5,7 @@ const AnimatedDots = () => {
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
+  const dot4 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const createAnimation = (dot: Animated.Value, delay: number) =>
@@ -14,7 +15,7 @@ const AnimatedDots = () => {
           Animated.sequence([
             Animated.timing(dot, {
               toValue: 1,
-              duration: 400,
+              duration: 600,
               useNativeDriver: true,
             }),
             Animated.timing(dot, {
@@ -30,6 +31,7 @@ const AnimatedDots = () => {
       createAnimation(dot1, 0),
       createAnimation(dot2, 200),
       createAnimation(dot3, 400),
+      createAnimation(dot4, 600),
     ]).start();
   }, []);
 
@@ -53,6 +55,7 @@ const AnimatedDots = () => {
       <Animated.View style={[styles.dot, getDotStyle(dot1)]} />
       <Animated.View style={[styles.dot, getDotStyle(dot2)]} />
       <Animated.View style={[styles.dot, getDotStyle(dot3)]} />
+      <Animated.View style={[styles.dot, getDotStyle(dot4)]} />
     </View>
   );
 };
@@ -68,7 +71,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginHorizontal: 4,
+    marginHorizontal: 6,
     backgroundColor: Colors.backgroundGray
   },
 });

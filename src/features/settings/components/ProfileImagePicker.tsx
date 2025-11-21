@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const ProfileImagePicker = () => {
-  const [imageUri, setImageUri] = useState<string | null>(null);
+const ProfileImagePicker = ({imageUri}:{imageUri?:string}) => {
 
 const handlePickImage = () => {
-  const randomId = Math.floor(Math.random() * 70) + 1; // Generate a random number between 1 and 70
-  setImageUri(`https://i.pravatar.cc/150?img=${randomId}`);
+  // const randomId = Math.floor(Math.random() * 70) + 1; // Generate a random number between 1 and 70
+  // setImageUri(`https://i.pravatar.cc/150?img=${randomId}`);
 };
 
   return (

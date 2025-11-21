@@ -1,11 +1,6 @@
 import * as React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ImageBackground,
-} from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { Colors } from "colors";
@@ -15,63 +10,70 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import ProfileImagePicker from "features/settings/components/ProfileImagePicker";
 import SettingsRowProps from "features/settings/components/SettingsRowProps";
 import { RootStackParamList } from "@/../../App";
-import { signOut } from 'firebase/auth';
-import { auth } from "config/firebase";
+import { signOut } from "firebase/auth";
+import { auth } from "configs/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 const rememberedUserKey = "rememberedUser";
-
+import { useUser } from "context/UserContext";
 
 const settingsOptions = [
   {
     iconName: "person",
     title: "Edit Profile",
-    routeName:"EditProfile",
+    routeName: "EditProfile",
     description: "Change your profile information",
   },
   {
     iconName: "lock-closed",
     title: "Change Password",
+    routeName: "StayTuned",
     description: "Update your account password",
   },
   {
     iconName: "notifications",
     title: "Notifications",
+    routeName: "StayTuned",
     description: "Manage your notification preferences",
   },
   {
     iconName: "newspaper",
     title: "Terms of Service",
+    routeName: "StayTuned",
     description: "Read our terms and conditions",
   },
   {
     iconName: "accessibility",
     title: "Help & Support",
+    routeName: "StayTuned",
     description: "Get assistance and find FAQs",
   },
   {
     iconName: "information-circle",
     title: "App information",
+    routeName: "StayTuned",
     description: "Version, licenses, and more",
   },
   {
     iconName: "share-social",
     title: "Invite a Friend",
+    routeName: "StayTuned",
     description: "Share the app with your friends",
   },
 ];
 
 const SettingsMainScreen: React.FC = () => {
+  const { currentUser } = useUser();
+
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const onBackPress = () => {};
 
-  const onLogoutPress = async() => {
+  const onLogoutPress = async () => {
     await signOut(auth);
     await AsyncStorage.removeItem(rememberedUserKey);
-    console.info("user removed form storage")
+    console.info("user removed form storage");
     navigation.replace("Login");
   };
- 
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -89,8 +91,12 @@ const SettingsMainScreen: React.FC = () => {
 
       {/* ProfileCard */}
       <View style={styles.profileCardContainer}>
-        <ProfileImagePicker />
-        <Text style={styles.nameTitle}>Helmi Ben Abdelghani</Text>
+        <ProfileImagePicker imageUri={currentUser?.profileImageUrl} />
+        <Text style={styles.nameTitle}>
+          {currentUser?.name && currentUser.lastName
+            ? `${currentUser.name} ${currentUser.lastName}`
+            : currentUser?.email}
+        </Text>
         <Text style={styles.nameDescription}>What's happening?</Text>
       </View>
 
@@ -108,8 +114,12 @@ const SettingsMainScreen: React.FC = () => {
               title={item.title}
               description={item.description}
               onPress={() => {
-                console.log(`${item.title} pressed`)
-                item.routeName?navigation.navigate(item.routeName as any):null
+                console.log(`${item.title} pressed`);
+                item.routeName
+                  ? navigation.navigate(item.routeName as any, {
+                      screenTitle: item.title,
+                    })
+                  : null;
               }}
             />
           ))}

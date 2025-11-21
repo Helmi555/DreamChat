@@ -17,6 +17,10 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Colors } from "colors";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import { useUser } from "context/UserContext";
+import { updateUserProfile } from "services/userService";
+import ImagePickerModal from "features/settings/components/ImagePickerModal";
+import { uploadProfileImage } from "services/supabaseImageService";
 
 type RootStackParamList = {
   SettingsMain: undefined;
@@ -24,29 +28,26 @@ type RootStackParamList = {
 };
 
 const EditProfileScreen: React.FC = () => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [firstName, setFirstName] = useState("Helmi");
-  const [lastName, setLastName] = useState("Ben Abdelghani");
-  const [phoneNumber, setPhoneNumber] = useState("+216 12 345 678");
-  const [isEditing, setIsEditing] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const { currentUser, setCurrentUser } = useUser();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const [firstName, setFirstName] = useState(currentUser?.name || "");
+  const [lastName, setLastName] = useState(currentUser?.lastName || "");
+  const [phoneNumber, setPhoneNumber] = useState(currentUser?.phoneNumber || "");
+  const [isEditing, setIsEditing] = useState(false)
+  const [isImagePickerVisible, setIsImagePickerVisible] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(currentUser?.profileImageUrl || null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const pickImage = async () => {
-    // Request permissions
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "Sorry, we need camera roll permissions to make this work!"
-      );
+      Alert.alert("Permission required", "Sorry, we need camera roll permissions to make this work!");
       return;
     }
 
-    // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], 
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -59,16 +60,11 @@ const EditProfileScreen: React.FC = () => {
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-
     if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "Sorry, we need camera permissions to make this work!"
-      );
+      Alert.alert("Permission required", "Sorry, we need camera permissions to make this work!");
       return;
     }
 
-    // Launch camera
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
@@ -80,44 +76,70 @@ const EditProfileScreen: React.FC = () => {
     }
   };
 
-  const showImagePickerOptions = () => {
-    Alert.alert("Change Profile Photo", "Choose an option", [
-      {
-        text: "Take Photo",
-        onPress: takePhoto,
-      },
-      {
-        text: "Choose from Library",
-        onPress: pickImage,
-      },
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-    ]);
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
     }
 
-    // Here you would typically save to your backend/Firestore
-    // You would upload the profileImage to Firebase Storage here
-    setIsEditing(false);
+    if (!currentUser?.id) {
+      Alert.alert("Error", "No user ID found");
+      return;
+    }
 
-    ToastAndroid.showWithGravity(
-      "Profile updated successfully",
-      ToastAndroid.SHORT,
-      ToastAndroid.CENTER
-    );
-    navigation.goBack();
+    setIsUploading(true);
+
+    try {
+      let finalImageUrl = currentUser.profileImageUrl;
+
+      if (profileImage && !profileImage.startsWith('http')) {
+        finalImageUrl = await uploadProfileImage(currentUser.id, profileImage, currentUser.profileImageUrl);
+      }
+
+      await updateUserProfile(currentUser.id, {
+        name: firstName,
+        lastName: lastName,
+        phoneNumber: phoneNumber,
+        profileImageUrl: finalImageUrl || "",
+      });
+
+      setCurrentUser({
+        ...currentUser,
+        name: firstName,
+        lastName: lastName,
+        phoneNumber: phoneNumber,
+        profileImageUrl: finalImageUrl || undefined,
+      });
+
+      setIsEditing(false);
+
+      ToastAndroid.showWithGravity(
+        "Profile updated successfully",
+        ToastAndroid.SHORT,
+        ToastAndroid.CENTER
+      );
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      Alert.alert("Error", "Failed to update profile. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     navigation.goBack();
+  };
+
+  const handleTakePhoto = async () => {
+    setIsImagePickerVisible(false);
+    await takePhoto();
+  };
+
+  const handleChooseFromLibrary = async () => {
+    setIsImagePickerVisible(false);
+    await pickImage();
   };
 
   return (
@@ -151,7 +173,9 @@ const EditProfileScreen: React.FC = () => {
         {/* Profile Image Section */}
         <View style={styles.profileImageContainer}>
           <TouchableOpacity
-            onPress={isEditing ? showImagePickerOptions : undefined}
+            onPress={
+              isEditing ? () => setIsImagePickerVisible(true) : undefined
+            }
             activeOpacity={isEditing ? 0.7 : 1}
           >
             <View style={styles.profileImage}>
@@ -173,7 +197,7 @@ const EditProfileScreen: React.FC = () => {
           {isEditing && (
             <TouchableOpacity
               style={styles.cameraButton}
-              onPress={showImagePickerOptions}
+              onPress={() => setIsImagePickerVisible(false)}
               activeOpacity={0.7}
             >
               <Ionicons
@@ -262,6 +286,12 @@ const EditProfileScreen: React.FC = () => {
             </View>
           )}
         </View>
+        <ImagePickerModal
+          visible={isImagePickerVisible}
+          onClose={() => setIsImagePickerVisible(false)}
+          onTakePhoto={handleTakePhoto}
+          onChooseFromLibrary={handleChooseFromLibrary}
+        />
       </ScrollView>
     </SafeAreaView>
   );
