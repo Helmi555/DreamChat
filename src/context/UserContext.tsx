@@ -1,8 +1,9 @@
-// src/context/UserContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { getDatabase, ref, get } from "firebase/database";
-import app, { auth } from "configs/firebase";
+import { auth, db } from "configs/firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "types/User";
+
+const rememberedUserKey = "rememberedUser";
 
 interface UserContextType {
   currentUser: User | null;
@@ -15,36 +16,38 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const loadUser = async () => {
       try {
-        console.info("Fetching user in provider");
-        const authUser = auth.currentUser;
-        if (authUser) {
-          const snapshot = await get(ref(getDatabase(app), `profiles/${authUser.uid}`));
-          if (snapshot.exists()) {
-            const userData = snapshot.val() as User;
-            setCurrentUser(userData);
-            console.info("user fetched in provider", userData); // Log the actual data
-          } else {
-            console.info("No user data found in database");
-          }
-        } else {
-          console.info("No authenticated user found");
+        // 1️⃣ Load from local storage first (offline)
+        const storedUser = await AsyncStorage.getItem(rememberedUserKey);
+        if (storedUser) {
+          setCurrentUser(JSON.parse(storedUser));
         }
+
+        // 2️⃣ Listen to Firebase Auth state
+        const unsubscribeAuth = auth.onAuthStateChanged(async (firebaseUser) => {
+          if (!firebaseUser) {
+            setCurrentUser(storedUser ? JSON.parse(storedUser) : null);
+            return;
+          }
+
+          // 3️⃣ Realtime DB subscription
+          const profileRef = db.ref(`profiles/${firebaseUser.uid}`);
+          profileRef.on("value", async (snapshot) => {
+            const profileData = snapshot.val() as User;
+            if (profileData) {
+              setCurrentUser(profileData);
+              await AsyncStorage.setItem(rememberedUserKey, JSON.stringify(profileData));
+            }
+          });
+        });
+
       } catch (err) {
-        console.error("Failed to fetch user profile:", err);
+        console.error("User context load failed:", err);
       }
     };
-    
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchUser();
-      } else {
-        setCurrentUser(null);
-      }
-    });
 
-    return unsubscribe;
+    loadUser();
   }, []);
 
   return (

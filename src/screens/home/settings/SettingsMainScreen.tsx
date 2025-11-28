@@ -11,10 +11,13 @@ import ProfileImagePicker from "features/settings/components/ProfileImagePicker"
 import SettingsRowProps from "features/settings/components/SettingsRowProps";
 import { RootStackParamList } from "@/../../App";
 import { signOut } from "firebase/auth";
-import { auth } from "configs/firebase";
+import app, { auth } from "configs/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const rememberedUserKey = "rememberedUser";
 import { useUser } from "context/UserContext";
+import { Database, get, getDatabase, ref } from "firebase/database";
+import { User } from "types/User";
+
+const rememberedUserKey = "rememberedUser";
 
 const settingsOptions = [
   {
@@ -66,6 +69,9 @@ const SettingsMainScreen: React.FC = () => {
 
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  
+
   const onBackPress = () => {};
 
   const onLogoutPress = async () => {
@@ -89,9 +95,17 @@ const SettingsMainScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* ProfileCard */}
+      {/* profile card */}
       <View style={styles.profileCardContainer}>
-        <ProfileImagePicker imageUri={currentUser?.profileImageUrl} />
+        {currentUser?.profileImageUrl ? (
+          <ProfileImagePicker imageUri={currentUser?.profileImageUrl} />
+        ) : (
+          <Ionicons
+            name="person-circle"
+            size={110}
+            color={Colors.textThirdly}
+          />
+        )}
         <Text style={styles.nameTitle}>
           {currentUser?.name && currentUser.lastName
             ? `${currentUser.name} ${currentUser.lastName}`
@@ -99,8 +113,6 @@ const SettingsMainScreen: React.FC = () => {
         </Text>
         <Text style={styles.nameDescription}>What's happening?</Text>
       </View>
-
-      {/* Actions */}
 
       <View style={styles.actionsContainer}>
         <ScrollView

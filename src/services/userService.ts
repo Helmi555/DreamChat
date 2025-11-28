@@ -1,8 +1,8 @@
 import { getDatabase, ref, set, get, update, child } from "firebase/database";
 import { User } from "types/User";
-import  app  from "configs/firebase"; // make sure firebase.ts exports your initialized app
+import firebase from "configs/firebase"; // for compat mode
 
-const db = getDatabase(app);
+const db = firebase.database();
 const PROFILES = "profiles/";
 
 // ✅ Create or overwrite user profile
@@ -25,4 +25,22 @@ export const updateUserProfile = async (
   updates: Partial<User>
 ): Promise<void> => {
   await update(ref(db, PROFILES+`${userId}`), updates);
+};
+
+// ✅ Check if pseudo is unique (not used by another user)
+export const isPseudoAvailable = async (
+  pseudo: string,
+  currentUserId: string
+): Promise<boolean> => {
+  const snapshot = await get(ref(db, PROFILES));
+  if (snapshot.exists()) {
+    const profiles = snapshot.val();
+    // loop through all profiles
+    for (const id in profiles) {
+      if (profiles[id].pseudo === pseudo && id !== currentUserId) {
+        return false; // already taken by someone else
+      }
+    }
+  }
+  return true; // available
 };

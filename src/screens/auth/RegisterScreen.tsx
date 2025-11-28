@@ -20,15 +20,13 @@ import { Ionicons } from "@expo/vector-icons";
 import GradientButton from "features/shared/components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { getDatabase, ref, set } from "firebase/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { auth } from "configs/firebase"; 
 import app from "configs/firebase";
 import { User } from "types/User";
+import firebase from "configs/firebase"; // your compat init file
+import { useUser } from "context/UserContext";
 
-
-const PROFILES="profiles"
-
+const PROFILES = "profiles";
 
 export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
@@ -42,63 +40,77 @@ export default function SignUpScreen() {
   const [error, setError] = useState("");
 
   const onExitPress = () => BackHandler.exitApp();
-
-const db = getDatabase(app);
-
-const onSubmitPress = async () => {
-  if (!username || !password || !confirmPassword) {
-    setError("All fields are required.");
-    return;
-  }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(username)) {
-    setError("Please enter a valid email address.");
-    return;
-  }
-  if (password.length < 6) {
-    setError("Password must be at least 6 characters.");
-    return;
-  }
-  if (password !== confirmPassword) {
-    setError("Passwords do not match.");
-    return;
-  }
-
-  try {
-    Keyboard.dismiss();
-    setError("");
-
-    // 1 Create Auth user
-    const userCredential = await createUserWithEmailAndPassword(auth, username, password);
-    const user = userCredential.user;
-
-    // 2️ Store profile in Realtime DB under profiles/{uid}
-
-    const newUser:User={
-      id: user.uid,
-      email: user.email!,
-    
+  const db = firebase.database();
+  const { setCurrentUser } = useUser();
+  const onSubmitPress = async () => {
+    if (!username || !password || !confirmPassword) {
+      setError("All fields are required.");
+      return;
     }
 
-    await set(ref(db, PROFILES+`/${user.uid}`), newUser);
-
-    // 3️⃣ Remember user locally
-    await AsyncStorage.setItem("rememberedUser", JSON.stringify(newUser));
-
-    // 4️⃣ Toast + navigation
-    ToastAndroid.show(`${user.email} registered successfully!`, ToastAndroid.SHORT);
-    setTimeout(() => {
-      navigation.replace("Home");
-    }, 2200);
-
-  } catch (error: any) {
-    if (error.code === "auth/email-already-in-use") {
-      setError("This email is already registered.");
-    } else {
-      setError(error.message);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(username)) {
+      setError("Please enter a valid email address.");
+      return;
     }
-  }
-};
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      Keyboard.dismiss();
+      setError("");
+
+      // 1️⃣ Create Auth user using compat
+      const userCredential = await firebase
+        .auth()
+        .createUserWithEmailAndPassword(username, password);
+
+      const user = userCredential.user;
+      if (!user) return;
+
+      // 2️⃣ Build full profile
+      const newUser: User = {
+        id: user.uid,
+        email: user.email!,
+        pseudo: "",
+        name: "", // optional: collect from form
+        lastName: "",
+        phoneNumber: "",
+        profileImageUrl: "",
+      };
+
+      // 3️⃣ Store profile in Realtime DB
+      await firebase.database().ref(`profiles/${user.uid}`).set(newUser);
+
+      // 4️⃣ Save locally for offline use
+      await AsyncStorage.setItem("rememberedUser", JSON.stringify(newUser));
+
+      // 5️⃣ Update context
+      setCurrentUser(newUser);
+
+      // 6️⃣ Toast + navigation
+      ToastAndroid.show(
+        `${user.email} registered successfully!`,
+        ToastAndroid.SHORT
+      );
+      setTimeout(() => navigation.replace("Home"), 2200);
+    } catch (error: any) {
+      if (error.code === "auth/email-already-in-use") {
+        setError("This email is already registered.");
+      } else {
+        setError(error.message);
+      }
+    }
+  };
+
   const onLoginPress = () => navigation.replace("Login");
 
   return (
@@ -132,6 +144,7 @@ const onSubmitPress = async () => {
                     />
                     <TextInput
                       style={styles.input}
+                      keyboardType="email-address"
                       placeholder="Enter email"
                       placeholderTextColor={Colors.textThirdly}
                       value={username}
