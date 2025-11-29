@@ -1,7 +1,6 @@
-
 import { supabase } from "configs/supabase";
-import * as FileSystem from 'expo-file-system';
-import { decode } from 'base64-arraybuffer';
+import * as FileSystem from "expo-file-system";
+import { decode } from "base64-arraybuffer";
 
 export const uploadProfileImage = async (
   userId: string,
@@ -10,13 +9,17 @@ export const uploadProfileImage = async (
 ): Promise<string> => {
   try {
     if (oldImageUrl) {
-     const urlParts = oldImageUrl.split('/profile-images/');
+      console.info(
+        "[Upload profile] Old image is ",
+        oldImageUrl,
+        "\nimageUri : ",
+        imageUri
+      );
+      const urlParts = oldImageUrl.split("/profile-images/");
       if (urlParts.length > 1) {
         const oldFilePath = urlParts[1];
-        await supabase.storage
-          .from("profile-images")
-          .remove([oldFilePath]);
-        console.log('Old image deleted:', oldFilePath);
+        await supabase.storage.from("profile-images").remove([oldFilePath]);
+        console.log("Old image deleted:", oldFilePath);
       }
     }
 
@@ -32,7 +35,7 @@ export const uploadProfileImage = async (
     const { data, error } = await supabase.storage
       .from("profile-images")
       .upload(filePath, arrayBuffer, {
-        contentType: 'image/jpeg',
+        contentType: "image/jpeg",
         upsert: false,
       });
 
@@ -45,6 +48,7 @@ export const uploadProfileImage = async (
       data: { publicUrl },
     } = supabase.storage.from("profile-images").getPublicUrl(filePath);
 
+    console.info("[Upload image]New public url ", publicUrl);
     return publicUrl;
   } catch (error) {
     console.error("Upload error:", error);

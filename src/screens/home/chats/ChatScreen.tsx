@@ -80,7 +80,7 @@ const now = Date.now();
 export const dummyChats: (Chat | Group)[] = [
   {
     id: "1",
-    participantIds: ["Hq0LBd6p9LRWDit7d1hV4YwJcgH2", "user2"],
+    participantIds: ["Hq0LBd6p9LRWDit7d1hV4YwJcgH2", "1z9pRHdVNVg1GHsVb7p7ZEDSJbO2"],
     lastMessageText: "Hey!",
     lastMessageTimestamp: now - 1000 * 60 * 10, // 10 min ago
     lastRead: {
@@ -179,9 +179,9 @@ const ChatsScreen: React.FC = () => {
 
 
 
-  const handlePressChat = (chatId: string) => {
-    console.log("Open chat", chatId);
-    navigation.navigate("MessagesScreen", { chatId });
+  const handlePressChat = (chat: Chat) => {
+    console.log("Open chat", chat.id);
+    navigation.navigate("MessagesScreen", { currentId: chat.participantIds[0],secondId:chat.participantIds[1] });
   };
 
 
@@ -270,7 +270,7 @@ const ChatsScreen: React.FC = () => {
                       item.participantIds.find((id) => id !== currentUser.id)!
                     ]?.profileImageUrl
               }
-              onPress={() => handlePressChat(item.id)}
+              onPress={() => handlePressChat(item as Chat)}
             />
           )}
           renderSectionHeader={({ section }) => (
