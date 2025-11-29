@@ -20,10 +20,12 @@ const MessagesScreen: React.FC = () => {
   const [messages, setMessages] = React.useState([]);
   const [input, setInput] = React.useState("");
   const all_discussions = db.ref("All_Discussions");
-  const { currentId, secondId } = route.params as {
-    currentId: string;
-    secondId: string;
-  };
+
+  const { currentId, secondId } = {currentId:"user1", secondId:"user2"};
+  //  as {
+  //   currentId: string;
+  //   secondId: string;
+  // };
 
   console.log("Current ID:", currentId);
   console.log("Second ID:", secondId);

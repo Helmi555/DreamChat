@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Image, TouchableOpacity, StyleSheet, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const ProfileImagePicker = ({imageUri}:{imageUri?:string}) => {
@@ -14,7 +14,8 @@ const handlePickImage = () => {
       <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
         <Image
           source={{
-            uri: imageUri || "https://i.pravatar.cc/150?img=3",
+            // uri: imageUri || "https://i.pravatar.cc/150?img=3",
+            uri: imageUri ,
           }}
           style={styles.image}
         />

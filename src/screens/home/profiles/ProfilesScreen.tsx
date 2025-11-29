@@ -10,18 +10,24 @@ import {
 import { Colors } from "colors";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import firebase from "configs/firebase";   // compat ONLY
+import firebase, { auth } from "configs/firebase";   // compat ONLY
 import { User } from "types/User";
 import { useNavigation } from "@react-navigation/native";
+import ProfileItem from "features/profiles/components/ProfileItem";
+import { useUser } from "context/UserContext";
 
-const GroupScreen: React.FC = () => {
+
+const ProfilesScreen: React.FC = () => {
   const [profiles, setProfiles] = React.useState<User[]>([]);
   const navigation = useNavigation();
+  const { currentUser } = useUser();
 
   React.useEffect(() => {
+    if (!currentUser?.id) return;
+
+    // Get all profiles then filter in memory (Firebase RTDB doesn't support != queries easily)
     const ref = firebase.database().ref("profiles");
 
-    // REAL-TIME LISTENER
     const listener = ref.on("value", (snapshot) => {
       if (!snapshot.exists()) {
         setProfiles([]);
@@ -30,12 +36,21 @@ const GroupScreen: React.FC = () => {
 
       const obj = snapshot.val();
       const list = Object.values(obj) as User[];
-      setProfiles(list);
+      
+      // Double-check filtering
+      const filteredProfiles = list.filter(profile => {
+        const isCurrentUser = profile.id === currentUser.id;
+        if (isCurrentUser) {
+          console.log(`❌ Removing current user: ${profile.email}`);
+        }
+        return !isCurrentUser;
+      }).sort((a, b) => a.email.localeCompare(b.email));
+      
+      setProfiles(filteredProfiles);
     });
 
-    // IMPORTANT: unsubscribe correctly
     return () => ref.off("value", listener);
-  }, []);
+  }, [currentUser?.id]);
 
   const handleCall = () => {};
   const handleMessage = () => navigation.navigate("MessagesScreen" as never);
@@ -52,44 +67,7 @@ const GroupScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           {profiles.map((profile) => (
-            <View
-              key={profile.id}
-              style={{
-                padding: 10,
-                borderBottomWidth: 1,
-                borderBottomColor: Colors.dividerGray,
-                justifyContent: "flex-start",
-                alignItems: "center",
-                flexDirection: "row",
-              }}
-            >
-              <Image
-                source={{
-                  uri:
-                    profile.profileImageUrl ||
-                    "https://i.pravatar.cc/150?img=3",
-                }}
-                style={styles.image}
-              />
-
-              <View style={{ marginLeft: 16 }}>
-                <Text style={styles.name}>
-                  {profile.name} {profile.lastName}
-                </Text>
-                <Text style={styles.email}>{profile.email}</Text>
-              </View>
-
-              <View
-                style={{
-                  marginLeft: "auto",
-                  flexDirection: "row",
-                  gap: 22,
-                }}
-              >
-                <Ionicons name="call" size={30} color={Colors.primaryBlue} onPress={handleCall} />
-                <Ionicons name="mail" size={30} color={Colors.successGreen} onPress={handleMessage} />
-              </View>
-            </View>
+           <ProfileItem key={profile.id} user={profile} />
           ))}
         </ScrollView>
       </View>
@@ -97,7 +75,7 @@ const GroupScreen: React.FC = () => {
   );
 };
 
-export default GroupScreen;
+export default ProfilesScreen;
 
 const styles = StyleSheet.create({
   container: {

@@ -29,6 +29,7 @@ type RootStackParamList = {
 
 const EditProfileScreen: React.FC = () => {
   const { currentUser, setCurrentUser } = useUser();
+  console.info("[EDITPROFILE]Current User: ",currentUser)
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -89,6 +90,7 @@ const EditProfileScreen: React.FC = () => {
   };
 
   const handleSave = async () => {
+
     if (!firstName.trim() || !lastName.trim()) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
@@ -333,7 +335,7 @@ const EditProfileScreen: React.FC = () => {
             <View style={styles.actionButtonsContainer}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={() => setIsEditing(false)}
+                onPress={() => {setIsEditing(false),setProfileImage(currentUser?.profileImageUrl||null)}}
                 activeOpacity={0.7}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
