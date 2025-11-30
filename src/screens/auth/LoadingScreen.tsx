@@ -37,7 +37,6 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  // Animation sequence
   Animated.parallel([
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -65,13 +64,11 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
     ),
   ]).start();
 
-    // ...existing code...
     useEffect(() => {
       const bootstrap = async () => {
         console.log("🚀 LoadingScreen bootstrap started");
   
         try {
-          // 1️⃣ Load remembered user from AsyncStorage (offline)
           const storedUserStr = await AsyncStorage.getItem(rememberedUserKey);
           const storedUser: User | null = storedUserStr
             ? JSON.parse(storedUserStr)
@@ -79,7 +76,6 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
   
           console.log("📱 Stored user in LoadingScreen:", storedUser?.email);
   
-          // 2️⃣ Check Firebase Auth
           console.log("🔥 Checking Firebase Auth current user...");
           const currentAuthUser = firebase.auth().currentUser;
           console.log("👤 Current auth user:", currentAuthUser?.email);
@@ -140,7 +136,6 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
               storedUser.id
             );
   
-            // Even without auth user, try to update active status using stored UID
             if (storedUser.id) {
               console.log(
                 "📝 Attempting to update active status with stored UID"
@@ -156,7 +151,6 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
                 });
                 console.log("✅ Stored user marked as active in database");
   
-                // Set up onDisconnect for stored user too
                 profileRef.onDisconnect().update({
                   isActive: false,
                   lastActiveAt: Date.now(),
