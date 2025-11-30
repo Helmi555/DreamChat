@@ -7,12 +7,12 @@ const PROFILES = "profiles/";
 
 // ✅ Create or overwrite user profile
 export const saveUserProfile = async (user: User): Promise<void> => {
-  await set(ref(db, PROFILES+`${user.id}`), user);
+  await set(ref(db, PROFILES + `${user.id}`), user);
 };
 
 // ✅ Get user profile by ID
 export const getUserProfile = async (userId: string): Promise<User | null> => {
-  const snapshot = await get(child(ref(db), PROFILES+`${userId}`));
+  const snapshot = await get(child(ref(db), PROFILES + `${userId}`));
   if (snapshot.exists()) {
     return snapshot.val() as User;
   }
@@ -24,7 +24,7 @@ export const updateUserProfile = async (
   userId: string,
   updates: Partial<User>
 ): Promise<void> => {
-  await update(ref(db, PROFILES+`${userId}`), updates);
+  await update(ref(db, PROFILES + `${userId}`), updates);
 };
 
 // ✅ Check if pseudo is unique (not used by another user)
@@ -44,3 +44,12 @@ export const isPseudoAvailable = async (
   }
   return true; // available
 };
+
+const userService = {
+  saveUserProfile,
+  getUserProfile,
+  updateUserProfile,
+  isPseudoAvailable,
+};
+
+export default userService;

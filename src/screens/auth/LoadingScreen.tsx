@@ -200,9 +200,8 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
         }
       };
   
-      bootstrap();
+     bootstrap();
     }, [navigation, setCurrentUser]);
-  // ...existing code...
 
   
   return (
@@ -286,7 +285,7 @@ const styles = StyleSheet.create({
   },
   securityBadge: {
     position: "absolute",
-    bottom: 30,
+    bottom: 70,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     padding: 12,
     borderRadius: 20,

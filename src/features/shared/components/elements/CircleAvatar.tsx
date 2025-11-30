@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 interface CircleAvatarProps {
-  letter: string; // The letter to display
+  letter?: string; // The letter to display (optional if imageUrl is provided)
+  imageUrl?: string; // The URL of the profile image (optional)
   size?: number; // Diameter of the circle
   colors?: string[]; // Custom gradient colors (optional)
 }
@@ -17,12 +18,26 @@ const defaultColors = [
 
 const CircleAvatar: React.FC<CircleAvatarProps> = ({
   letter,
+  imageUrl,
   size = 50,
   colors,
 }) => {
+  if (imageUrl) {
+    return (
+      <Image
+        source={{ uri: imageUrl }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+        }}
+      />
+    );
+  }
+
   // Generate a stable random index based on the letter
   const colorIndex = useMemo(
-    () => Math.abs(letter.charCodeAt(0) % defaultColors.length),
+    () => Math.abs((letter?.charCodeAt(0) || 0) % defaultColors.length),
     [letter]
   );
   const gradientColors = colors || defaultColors[colorIndex];
@@ -37,7 +52,7 @@ const CircleAvatar: React.FC<CircleAvatarProps> = ({
     >
       <View style={styles.textContainer}>
         <Text style={[styles.letter, { fontSize: size / 2 }]}>
-          {letter.toUpperCase()}
+          {letter?.toUpperCase()}
         </Text>
       </View>
     </LinearGradient>

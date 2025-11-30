@@ -6,24 +6,54 @@ export interface Reaction {
 }
 
 export type MessageType = "text" | "image" | "file";
+export type MessageStatus =  "delivered" | "read";
 
 export interface Message {
-  id: string;
+  idMessage: string;
+  messageBody: string;
   senderId: string;
-  text?: string;
-  fileUrl?: string;
-  type: MessageType;
+  receiverId: string;
   timestamp: number;
-  repliedTo?: string;
+  type: MessageType;
   edited?: boolean;
-  status?: "delivered" | "read";
+  status?: MessageStatus;
   reactions?: { [userId: string]: ReactionType };
 }
 
-export interface Chat {
-  id: string; // combination of two user IDs sorted: userA+userB
-  participantIds: [string, string];
+export interface Discussion {
+  id: string; // e.g., "UserA_UserB"
+  participantIds: [string, string];//not needed coz the id already has both userids concat by sorted and "_"
+  backgroundImageUrl?: string;
+  typing?: { [userId: string]: boolean };//should be like userid_typing
   lastMessageText?: string;
   lastMessageTimestamp?: number;
-  typing?: { [userId: string]: boolean };
+  messages: { [idMessage: string]: Message };
 }
+
+
+// "All_Discussions": {
+//   "UserA_UserB": {
+//     "UserA_isTyping": true,
+//     "UserB_isTyping": false,
+//     "messages": {
+//       "msg1": {
+//         "idMessage": "msg1",
+//         "messageBody": "Hello world",
+//         "senderId": "UserB",
+//         "receiverId": "UserA",
+//         "time": 1764416557349,
+//         type: "text" | "image" | "file";
+//         reactions
+//       },
+//       "msg2": {
+//         "idMessage": "msg2",
+//         "MessageBody": "How are you?",
+//         "sender": "UserA",
+//         "receiver": "UserB",
+//         "time": 1764416560000,
+//          type: "text" | "image" | "file";
+//         reactions
+//       }
+//     }
+//   }
+// }
