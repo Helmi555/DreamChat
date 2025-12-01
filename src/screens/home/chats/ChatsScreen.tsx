@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   FlatList,
@@ -26,7 +26,7 @@ import { ref, onValue, off } from "firebase/database";
 import { db } from "configs/firebase";
 
 const ChatsScreen: React.FC = () => {
-  const [discussions, setDiscussions] = useState<Discussion[]>([]); 
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, User>>({});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "unread" | "groups">("all");
@@ -36,59 +36,72 @@ const ChatsScreen: React.FC = () => {
       NativeStackNavigationProp<RootStackParamList, "ChatsScreen">
     >();
 
-  useEffect(() => {
+    useEffect(() => {
     const discussionsRef = ref(db, "All_Discussions");
-
+  
     const handleDiscussionsSnapshot = (snapshot: any) => {
       const discussionsData = snapshot.val();
       const fetchedDiscussions: Discussion[] = [];
-
+  
       if (discussionsData) {
         Object.keys(discussionsData).forEach((discussionId) => {
           const discussion = discussionsData[discussionId];
-          fetchedDiscussions.push(discussion);
+  
+          if (discussion.participantIds.includes(currentUser?.id)) {
+            fetchedDiscussions.push(discussion);
+          }
         });
-
-        // Sort discussions by last message timestamp (newest first)
+  
+        console.info("[Chats] fetched discussions are ", fetchedDiscussions);
+  
         fetchedDiscussions.sort(
           (a, b) =>
             (b.lastMessageTimestamp || 0) - (a.lastMessageTimestamp || 0)
         );
       }
-
+  
       setDiscussions(fetchedDiscussions);
     };
-
+  
     onValue(discussionsRef, handleDiscussionsSnapshot);
-
+  
     return () => {
       off(discussionsRef, "value", handleDiscussionsSnapshot);
     };
-  }, []);
+  }, [currentUser?.id]);
+
+  const userRefs = useRef<Record<string, any>>({});
+  const usersMapRef = useRef<Record<string, User>>({});
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const userPromises = discussions.flatMap((discussion) =>
-        discussion.participantIds.map((id) =>
-          id !== currentUser?.id ? userService.getUserProfile(id) : null
-        )
-      );
+    
 
-      const users = await Promise.all(userPromises);
-      const usersMap: Record<string, User> = {};
-      users.forEach((user) => {
-        if (user) {
-          usersMap[user.id] = user;
+    discussions.forEach((discussion) => {
+      discussion.participantIds.forEach((id) => {
+        if (id !== currentUser?.id && !userRefs.current[id]) {
+          const userRef = ref(db, `profiles/${id}`);
+          userRefs.current[id] = userRef;
+
+          const listener = onValue(userRef, (snapshot) => {
+            const user = snapshot.val() as User;
+            if (user) {
+              usersMapRef.current[user.id] = user;
+              setUsersMap({ ...usersMapRef.current }); // Update state with the latest users
+            }
+          });
+
+          userRefs.current[id].off = () => off(userRef, "value", listener);
         }
       });
-      setUsersMap(usersMap);
-    };
+    });
 
-    fetchUsers();
-  }, [discussions, currentUser]);
+    return () => {
+      Object.values(userRefs.current).forEach((ref) => ref.off && ref.off());
+    };
+  }, [discussions, currentUser?.id]);
 
   const filteredChats = discussions.filter((chat) => {
-    // Apply search and filter logic
+
     if (search.trim() === "") {
       return true; // Include all chats if search is empty
     }
@@ -127,7 +140,7 @@ const ChatsScreen: React.FC = () => {
               fontWeight: "500",
             }}
           >
-            Lets connect
+            Let's connect
           </Text>
         </View>
         <Image
@@ -174,6 +187,11 @@ const ChatsScreen: React.FC = () => {
       >
         <SectionList
           sections={[{ title: "Chats", data: filteredChats }]}
+          ListEmptyComponent={()=><View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
+            <Text style={{fontSize:16,fontWeight:"500",color:Colors.textSecondary}}>
+              Loading chats ...
+            </Text>
+          </View>}  
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const otherUserId = item.participantIds.find(

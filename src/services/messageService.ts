@@ -76,6 +76,7 @@ export const messagesService = {
           messages: { [messageId]: message },
           lastMessageText: messageBody,
           lastMessageTimestamp: Date.now(),
+          lastMessageSenderId: senderId,
         };
         await discussionRef.set(newDiscussion);
         console.log(`✅ New discussion created: ${discussionId}`);
@@ -90,6 +91,7 @@ export const messagesService = {
       await db.ref(`${DISCUSSIONS_PATH}/${discussionId}`).update({
         lastMessageText: messageBody,
         lastMessageTimestamp: Date.now(),
+        lastMessageSenderId: senderId,
       });
 
       console.log(`✅ Message sent to discussion: ${discussionId}`);

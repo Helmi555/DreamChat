@@ -27,6 +27,7 @@ export interface Discussion {
   typing?: { [userId: string]: boolean };//should be like userid_typing
   lastMessageText?: string;
   lastMessageTimestamp?: number;
+  lastMessageSenderId?: string;
   messages: { [idMessage: string]: Message };
 }
 

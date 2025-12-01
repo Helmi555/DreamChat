@@ -55,3 +55,46 @@ export const uploadProfileImage = async (
     throw error;
   }
 };
+
+export const uploadDiscussionBackgroundImage = async (
+  discussionId: string,
+  imageUri: string,
+  oldImageUrl?: string
+): Promise<string> => {
+  try {
+    if (oldImageUrl) {
+      const urlParts = oldImageUrl.split("/discussion-backgrounds/");
+      if (urlParts.length > 1) {
+        const oldFilePath = urlParts[1];
+        await supabase.storage.from("discussion-backgrounds").remove([oldFilePath]);
+      }
+    }
+
+    const fileName = `background-${Date.now()}.jpg`;
+    const filePath = `${discussionId}/${fileName}`;
+
+    const base64 = await FileSystem.readAsStringAsync(imageUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    const arrayBuffer = decode(base64);
+
+    const { error } = await supabase.storage
+      .from("discussion-backgrounds")
+      .upload(filePath, arrayBuffer, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("discussion-backgrounds")
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error("Upload discussion background error:", error);
+    throw error;
+  }
+};

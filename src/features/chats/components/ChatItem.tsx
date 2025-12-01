@@ -5,10 +5,13 @@ import { Discussion } from "types/Chat";
 import { User } from "types/User";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 import CircleAvatar from "features/shared/components/elements/CircleAvatar";
+import AnimatedDots from "features/shared/components/elements/AnimatedDots"; // Import the typing animation component
+import { Colors } from "colors";
+import TypingAnimatedDots from "features/shared/components/elements/TypingAnimatedDots";
 
 interface ChatItemProps {
   discussion: Discussion;
-  otherUser: User | null; 
+  otherUser: User | null;
   onPress?: () => void;
 }
 
@@ -42,29 +45,64 @@ const ChatItem: React.FC<ChatItemProps> = ({
       timeText = format(ts, "dd/MM/yyyy");
     }
   }
+  // const getStatusColor = () => {
+  //   if (otherUser.isActive) return Colors.textSecondary
+  //   return Colors.primaryGreen;
+  // };
+  if (!otherUser) {
+    return null; // or a placeholder
+  }
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
-      {otherUser?.profileImageUrl ? (
-        <Image
-          source={{ uri: otherUser.profileImageUrl }}
-          style={styles.avatar}
+      <View style={styles.avatarContainer}>
+        {otherUser?.profileImageUrl ? (
+          <Image
+            source={{ uri: otherUser.profileImageUrl }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={{ marginRight: 12 }}>
+            <CircleAvatar letter={otherUser?.name?.[0] || "?"} size={50} />
+          </View>
+        )}
+        <View
+          style={[
+            styles.compactStatusBadge,
+            {
+              backgroundColor: otherUser.isActive
+                ? Colors.primaryGreen
+                : Colors.textSecondary,
+            },
+          ]}
         />
-      ) : (
-        <View style={{ marginRight: 12 }} >
-        <CircleAvatar letter={otherUser?.name?.[0] || "?"} size={50}  />
-        </View>
-      )}
+      </View>
+
       <View style={styles.textContainer}>
         <Text style={[isUnread && styles.unreadMessage, styles.chatName]}>
           {chatName}
         </Text>
-        <Text style={[styles.lastMessage, isUnread && styles.unreadMessage]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {lastMessage?.messageBody || "No messages yet"}
-        </Text>
+        {discussion?.typing && discussion.typing[otherUser.id] ? (
+          <View style={styles.typingIndicatorContainer}>
+            <Text style={styles.typingText}>Typing</Text>
+            <TypingAnimatedDots />
+          </View>
+        ) : (
+          <Text
+            style={[styles.lastMessage, isUnread && styles.unreadMessage]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {discussion.lastMessageSenderId &&
+            discussion?.lastMessageSenderId === otherUser.id
+              ? ""
+              : "You: "}{" "}
+            {lastMessage?.messageBody || "No messages yet"}
+          </Text>
+        )}
+        {otherUser?.isActive && (
+          <Text style={styles.activeStatus}>Active now</Text>
+        )}
       </View>
       <View style={styles.rightContainer}>
         <Text style={[styles.timestamp, isUnread && styles.unreadMessage]}>
@@ -94,8 +132,11 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginRight: 12,
   },
+  avatarContainer: {
+    position: "relative", // Ensure the container is positioned relative for absolute positioning of the badge
+  },
   textContainer: {
-    flex: 1,
+    flex: 1, // Ensure the text container takes up available space
   },
   chatName: {
     fontWeight: "600",
@@ -126,6 +167,32 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+    backgroundColor: "#2ecc71",
+  },
+  typingIndicatorContainer: {
+    flexDirection: "row",
+  },
+  typingText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    fontWeight: "500",
+  },
+  activeStatus: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#2ecc71",
+    fontWeight: "600",
+  },
+  compactStatusBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 10,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#fff",
     backgroundColor: "#2ecc71",
   },
 });

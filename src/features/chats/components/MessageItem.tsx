@@ -98,13 +98,13 @@ const styles = StyleSheet.create({
   senderBubble: {
     backgroundColor: Colors.primaryGreen,
     alignSelf: "flex-end",
-    borderBottomLeftRadius: 14,
+    borderBottomLeftRadius: 18,
     borderBottomRightRadius: 2,
   },
   receiverBubble: {
     backgroundColor: "#f1f1f1",
     alignSelf: "flex-start",
-    borderBottomRightRadius: 14,
+    borderBottomRightRadius: 18,
     borderBottomLeftRadius: 2,
   },
   messageText: {

@@ -11,6 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  ImageBackground,
+  Alert,
 } from "react-native";
 import { Colors } from "colors";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -23,6 +25,9 @@ import { Discussion, Message, MessageStatus } from "types/Chat";
 import { ref, onValue, off } from "firebase/database";
 import MessageItem from "features/chats/components/MessageItem";
 import TypingIndicator from "features/chats/components/TypingIndicator";
+import ChangeBackgroundModal from "features/chats/elements/ChangeBackgroundModal";
+import * as ImagePicker from "expo-image-picker";
+import { uploadDiscussionBackgroundImage } from "services/supabaseImageService";
 
 const ConversationScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -38,6 +43,7 @@ const ConversationScreen: React.FC = () => {
   const [input, setInput] = useState("");
   const [inputHeight, setInputHeight] = useState(40); // Default height for one line
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [isModalVisible, setModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   //logs the diss id the two userss
@@ -146,6 +152,61 @@ const ConversationScreen: React.FC = () => {
     messagesService.setTypingStatus(discussionId, currentUser?.id || "", false);
   };
 
+  const handleOpenModal = () => {
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleChangeBackground = async () => {
+    try {
+      // Ask for permission to access the image library
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Permission to access the image library is required!"
+        );
+        return;
+      }
+
+      // Let the user pick an image
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      if (pickerResult.canceled) {
+        console.log("Image picker canceled");
+        return;
+      }
+
+      const imageUri = pickerResult.assets[0].uri;
+
+      // Upload the selected image
+      const newBackgroundUrl = await uploadDiscussionBackgroundImage(
+        discussionId,
+        imageUri,
+        discussion?.backgroundImageUrl
+      );
+
+      // Update the discussion background URL in the database
+      await messagesService.updateDiscussionBackground(
+        discussionId,
+        newBackgroundUrl
+      );
+
+      console.log("Background image updated successfully");
+    } catch (error) {
+      console.error("Error changing background image:", error);
+    }
+  };
+
   if (!secondUser) {
     return (
       <View
@@ -153,7 +214,7 @@ const ConversationScreen: React.FC = () => {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#f9f9f9",
+          //backgroundColor: Colors.backgroundLight,
         }}
       >
         <Text style={{ fontSize: 16, color: "#6b7280" }}>
@@ -162,105 +223,131 @@ const ConversationScreen: React.FC = () => {
       </View>
     );
   }
-
+  console.info("Backgorund image is: ", discussion?.backgroundImageUrl);
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Header */}
-      <View style={styles.header}>
-        {/* Left Section: Back Button */}
-        <TouchableOpacity
-          onPress={navigation.goBack}
-          activeOpacity={0.6}
-          style={styles.headerLeft}
-        >
-          <Ionicons name="arrow-back" size={30} color={"#000"} />
-        </TouchableOpacity>
+    <ImageBackground
+      source={{ uri: discussion?.backgroundImageUrl || undefined }}
+      //source={{ uri: "/DreamChat/assets/img_background.jpg" }}
+      style={{ flex: 1 }}
+      resizeMode="cover"
+      onError={(e) =>
+        console.error("Image failed to load:", e.nativeEvent.error)
+      }
+      onLoad={() => console.log("Image loaded successfully")}
+    >
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        {/*header*/}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={navigation.goBack}
+            activeOpacity={0.6}
+            style={styles.headerLeft}
+          >
+            <Ionicons name="arrow-back" size={30} color={"#000"} />
+          </TouchableOpacity>
 
-        {/* Center Section: Title */}
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>
-            {secondUser.name + " " + secondUser.lastName}
-          </Text>
+          {/* Center Section: Title */}
+          <View style={styles.headerCenter}>
+            <Text style={styles.title}>
+              {secondUser.name + " " + secondUser.lastName}
+            </Text>
+          </View>
+
+          {/* Right Section: Call and Video Icons */}
+          <View style={styles.headerRight}>
+            <TouchableOpacity>
+              <Ionicons name="videocam" size={24} color={Colors.primaryGreen} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Ionicons name="call" size={24} color={Colors.primaryGreen} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleOpenModal}>
+              <Ionicons name="ellipsis-vertical" size={24} color={"#000"} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Right Section: Call and Video Icons */}
-        <View style={styles.headerRight}>
-          <TouchableOpacity>
-            <Ionicons name="videocam" size={24} color={Colors.primaryGreen} />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Ionicons name="call" size={24} color={Colors.primaryGreen} />
-          </TouchableOpacity>
-        </View>
-      </View>
+        {/* Modal */}
+        <ChangeBackgroundModal
+          visible={isModalVisible}
+          onClose={handleCloseModal}
+          onChangeBackground={handleChangeBackground}
+        />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0} // Adjust offset for header height
-      >
-        <ScrollView
-          ref={scrollViewRef}
-          bounces={false}
-          overScrollMode="never"
-          showsVerticalScrollIndicator={false}
-          style={styles.messages}
-          contentContainerStyle={{ paddingVertical: 12 }}
-          onContentSizeChange={() => {
-            if (scrollViewRef.current) {
-              scrollViewRef.current.scrollToEnd({ animated: true });
-            }
-          }}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0} // Adjust offset for header height
         >
-          {messages.map((message) => (
-            <MessageItem
-              key={message.idMessage}
-              message={message}
-              secondUserName={
-                secondUser.name ? secondUser.name : secondUser.email
+          <ScrollView
+            ref={scrollViewRef}
+            bounces={false}
+            overScrollMode="never"
+            showsVerticalScrollIndicator={false}
+            style={styles.messages}
+            contentContainerStyle={{ paddingVertical: 12 }}
+            onContentSizeChange={() => {
+              if (scrollViewRef.current) {
+                scrollViewRef.current.scrollToEnd({ animated: true });
               }
-              isSender={message.senderId === currentUser?.id}
-              senderProfileImage={currentUser?.profileImageUrl}
-              receiverProfileImage={secondUser.profileImageUrl}
-              seen={message.status === "read" || message.status === "delivered"}
+            }}
+          >
+            {messages.map((message) => (
+              <MessageItem
+                key={message.idMessage}
+                message={message}
+                secondUserName={
+                  secondUser.name ? secondUser.name : secondUser.email
+                }
+                isSender={message.senderId === currentUser?.id}
+                senderProfileImage={currentUser?.profileImageUrl}
+                receiverProfileImage={secondUser.profileImageUrl}
+                seen={
+                  message.status === "read" || message.status === "delivered"
+                }
+              />
+            ))}
+
+            {discussion?.typing && discussion.typing[secondUser.id] && (
+              <View style={{ marginTop: 6 }}>
+                <TypingIndicator
+                  profileImage={secondUser.profileImageUrl}
+                  letter={
+                    secondUser.name
+                      ? secondUser.name.charAt(0)
+                      : secondUser.email.charAt(0)
+                  }
+                />
+              </View>
+            )}
+          </ScrollView>
+
+          <View
+            style={[styles.inputRow, keyboardVisible && { marginBottom: 0 }]}
+          >
+            <TextInput
+              style={[
+                styles.input,
+                { height: Math.min(inputHeight, 80) }, // Dynamically adjust height, max 80
+              ]}
+              placeholder="Type a message"
+              placeholderTextColor="#9aa0a6"
+              value={input}
+              onChangeText={setInput}
+              multiline
+              onContentSizeChange={(event) =>
+                setInputHeight(event.nativeEvent.contentSize.height)
+              }
+              onFocus={() => handleOnFocus()}
+              onBlur={() => handleOnBlur()}
             />
-          ))}
-
-          {discussion?.typing && discussion.typing[secondUser.id] && (
-            <View style={{ marginTop: 6 }}>
-              <TypingIndicator profileImage={secondUser.profileImageUrl} letter={secondUser.name ? secondUser.name.charAt(0) : secondUser.email.charAt(0)} />
-            </View>
-          )}
-        </ScrollView>
-
-        <View
-          style={[
-            styles.inputRow,
-            keyboardVisible && { marginBottom: 10 }, // Adjust margin when keyboard is visible
-          ]}
-        >
-          <TextInput
-            style={[
-              styles.input,
-              { height: Math.min(inputHeight, 80) }, // Dynamically adjust height, max 80
-            ]}
-            placeholder="Type a message"
-            placeholderTextColor="#9aa0a6"
-            value={input}
-            onChangeText={setInput}
-            multiline
-            onContentSizeChange={(event) =>
-              setInputHeight(event.nativeEvent.contentSize.height)
-            }
-            onFocus={() => handleOnFocus()}
-            onBlur={() => handleOnBlur()}
-          />
-          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-            <Text style={styles.sendText}>Send</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
+              <Text style={styles.sendText}>Send</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
@@ -269,7 +356,7 @@ export default ConversationScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fafafa",
+    //backgroundColor: Colors.backgroundLight,
   },
   header: {
     flexDirection: "row",
@@ -277,9 +364,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#ffffff",
+    //backgroundColor: "#ffffff",
   },
   headerLeft: {
     width: 50, // Fixed width for consistent spacing
@@ -290,9 +375,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerRight: {
-    width: 80, // Fixed width for consistent spacing
+    width: 100, // Fixed width for consistent spacing
     flexDirection: "row",
     justifyContent: "space-between",
+    borderWidth: 0,
   },
   title: {
     fontSize: 18,
@@ -313,13 +399,13 @@ const styles = StyleSheet.create({
   },
   bubbleIncoming: {
     alignSelf: "flex-start",
-    backgroundColor: "#ffffff",
+    //backgroundColor: "#ffffff",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "#e5e7eb",
   },
   bubbleOutgoing: {
     alignSelf: "flex-end",
-    backgroundColor: Colors.primaryGreen,
+    //backgroundColor: Colors.primaryGreen,
   },
   bubbleText: {
     fontSize: 15,
