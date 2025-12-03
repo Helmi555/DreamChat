@@ -145,14 +145,16 @@ const onLogoutPress = async () => {
 
       {/* profile card */}
       <View style={styles.profileCardContainer}>
+        <View style={styles.profileImageContainer}>
         {currentUser?.profileImageUrl ? (
           <Image
             source={{ uri: currentUser.profileImageUrl }}
             style={styles.profileImage}
           />
         ) : (
-          <Ionicons name="person" size={120} color={Colors.textSecondary} />
+          <Ionicons name="person" size={80} color={Colors.textSecondary} />
         )}
+        </View>
         <Text style={styles.nameTitle}>
           {currentUser?.name && currentUser.lastName
             ? `${currentUser.name} ${currentUser.lastName}`
@@ -214,6 +216,17 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
 
+  profileImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: Colors.backgroundGray,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderColor: Colors.filterActiveBg,
+    overflow: "hidden",
+  },
   profileImage: {
     width: 120,
     height: 120,

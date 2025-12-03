@@ -41,14 +41,11 @@ const ConversationScreen: React.FC = () => {
   const secondUser: User = JSON.parse(secondUserString);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [inputHeight, setInputHeight] = useState(40); // Default height for one line
+  const [inputHeight, setInputHeight] = useState(40);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  //logs the diss id the two userss
-
-  console.info();
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
 
   useEffect(() => {
@@ -57,7 +54,7 @@ const ConversationScreen: React.FC = () => {
     const handleDiscussionChange = (snapshot: any) => {
       const discussionData = snapshot.val();
       if (discussionData) {
-        console.log("Fetched discussion:", discussionData); // Debug log
+        console.log("Fetched discussion true");
         setDiscussion(discussionData);
       } else {
         console.log("No discussion found for ID:", discussionId);
@@ -71,18 +68,18 @@ const ConversationScreen: React.FC = () => {
       off(discussionRef, "value", handleDiscussionChange);
     };
   }, [discussionId]);
+
   useEffect(() => {
     const messagesRef = ref(db, `All_Discussions/${discussionId}/messages`);
 
     const handleValueChange = (snapshot: any) => {
       const messagesData = snapshot.val();
       if (messagesData) {
-        // Convert messages object to array and sort by timestamp
         const messagesArray = Object.values(messagesData) as Message[];
         messagesArray.sort(
           (a: Message, b: Message) => a.timestamp - b.timestamp
         );
-        console.log("Fetched messages:", messagesArray); // Debug log
+        console.log("Fetched messages:", messagesArray.length);
         setMessages(messagesArray);
       } else {
         console.log("No messages found for discussion:", discussionId);
@@ -93,22 +90,29 @@ const ConversationScreen: React.FC = () => {
     onValue(messagesRef, handleValueChange);
 
     return () => {
-      // Cleanup listener on unmount
       off(messagesRef, "value", handleValueChange);
     };
   }, [discussionId]);
 
   useEffect(() => {
-    // Auto-scroll to the bottom when messages update
     if (scrollViewRef.current) {
-      scrollViewRef.current.scrollToEnd({ animated: true });
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 100);
     }
-  }, [messages]);
+  }, [messages, keyboardVisible]);
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
       setKeyboardVisible(true);
+      // Scroll to bottom when keyboard appears
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollToEnd({ animated: true });
+        }
+      }, 250);
     });
+
     const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
       setKeyboardVisible(false);
     });
@@ -128,6 +132,7 @@ const ConversationScreen: React.FC = () => {
       );
     };
   }, [discussionId, currentUser?.id]);
+
   const sendMessage = async () => {
     if (input.trim().length > 0 && currentUser) {
       try {
@@ -138,16 +143,30 @@ const ConversationScreen: React.FC = () => {
           input.trim()
         );
         setInput("");
-        setInputHeight(40); // Reset input height after sending
+        setInputHeight(40);
+
+        // Scroll to bottom after sending
+        setTimeout(() => {
+          if (scrollViewRef.current) {
+            scrollViewRef.current.scrollToEnd({ animated: true });
+          }
+        }, 100);
       } catch (error) {
         console.error("Error sending message:", error);
       }
     }
   };
 
+  useEffect(() => {
+    if (currentUser && discussionId) {
+      messagesService.markDiscussionAsRead(discussionId, currentUser.id);
+    }
+  }, [currentUser, discussionId, messages]);
+
   const handleOnFocus = () => {
     messagesService.setTypingStatus(discussionId, currentUser?.id || "", true);
   };
+
   const handleOnBlur = () => {
     messagesService.setTypingStatus(discussionId, currentUser?.id || "", false);
   };
@@ -162,7 +181,6 @@ const ConversationScreen: React.FC = () => {
 
   const handleChangeBackground = async () => {
     try {
-      // Ask for permission to access the image library
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -174,9 +192,8 @@ const ConversationScreen: React.FC = () => {
         return;
       }
 
-      // Let the user pick an image
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: "images",
         allowsEditing: true,
         quality: 1,
       });
@@ -188,14 +205,12 @@ const ConversationScreen: React.FC = () => {
 
       const imageUri = pickerResult.assets[0].uri;
 
-      // Upload the selected image
       const newBackgroundUrl = await uploadDiscussionBackgroundImage(
         discussionId,
         imageUri,
         discussion?.backgroundImageUrl
       );
 
-      // Update the discussion background URL in the database
       await messagesService.updateDiscussionBackground(
         discussionId,
         newBackgroundUrl
@@ -214,7 +229,6 @@ const ConversationScreen: React.FC = () => {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          //backgroundColor: Colors.backgroundLight,
         }}
       >
         <Text style={{ fontSize: 16, color: "#6b7280" }}>
@@ -223,11 +237,10 @@ const ConversationScreen: React.FC = () => {
       </View>
     );
   }
-  console.info("Backgorund image is: ", discussion?.backgroundImageUrl);
+
   return (
     <ImageBackground
       source={{ uri: discussion?.backgroundImageUrl || undefined }}
-      //source={{ uri: "/DreamChat/assets/img_background.jpg" }}
       style={{ flex: 1 }}
       resizeMode="cover"
       onError={(e) =>
@@ -235,7 +248,17 @@ const ConversationScreen: React.FC = () => {
       }
       onLoad={() => console.log("Image loaded successfully")}
     >
-      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      <SafeAreaView
+        style={[
+          styles.container,
+          {
+            backgroundColor: discussion?.backgroundImageUrl
+              ? "transparent"
+              : Colors.backgroundLight,
+          },
+        ]}
+        edges={["top", "left", "right"]}
+      >
         {/*header*/}
         <View style={styles.header}>
           <TouchableOpacity
@@ -246,14 +269,16 @@ const ConversationScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={30} color={"#000"} />
           </TouchableOpacity>
 
-          {/* Center Section: Title */}
           <View style={styles.headerCenter}>
-            <Text style={styles.title}>
-              {secondUser.name + " " + secondUser.lastName}
+            <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+              {secondUser.name
+                ? secondUser.lastName
+                  ? secondUser.name + " " + secondUser.lastName
+                  : secondUser.name
+                : secondUser.email}
             </Text>
           </View>
 
-          {/* Right Section: Call and Video Icons */}
           <View style={styles.headerRight}>
             <TouchableOpacity>
               <Ionicons name="videocam" size={24} color={Colors.primaryGreen} />
@@ -267,7 +292,6 @@ const ConversationScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Modal */}
         <ChangeBackgroundModal
           visible={isModalVisible}
           onClose={handleCloseModal}
@@ -275,9 +299,9 @@ const ConversationScreen: React.FC = () => {
         />
 
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={0} // Adjust offset for header height
+          style={{ flex: 1, zIndex: 1000 }}
+          behavior="padding"
+          keyboardVerticalOffset={0}
         >
           <ScrollView
             ref={scrollViewRef}
@@ -285,14 +309,18 @@ const ConversationScreen: React.FC = () => {
             overScrollMode="never"
             showsVerticalScrollIndicator={false}
             style={styles.messages}
-            contentContainerStyle={{ paddingVertical: 12 }}
+            contentContainerStyle={{
+              paddingVertical: 12,
+              paddingBottom: 10, // Add some bottom padding
+            }}
+            keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => {
-              if (scrollViewRef.current) {
-                scrollViewRef.current.scrollToEnd({ animated: true });
+              if (!keyboardVisible && scrollViewRef.current) {
+                scrollViewRef.current.scrollToEnd({ animated: false });
               }
             }}
           >
-            {messages.map((message) => (
+            {messages.map((message, index) => (
               <MessageItem
                 key={message.idMessage}
                 message={message}
@@ -303,7 +331,8 @@ const ConversationScreen: React.FC = () => {
                 senderProfileImage={currentUser?.profileImageUrl}
                 receiverProfileImage={secondUser.profileImageUrl}
                 seen={
-                  message.status === "read" || message.status === "delivered"
+                  discussion?.readBy[secondUser.id] === true &&
+                  index === messages.length - 1
                 }
               />
             ))}
@@ -320,16 +349,14 @@ const ConversationScreen: React.FC = () => {
                 />
               </View>
             )}
+
+            {/* Add extra space at bottom for better scrolling */}
+            <View style={{ height: 20 }} />
           </ScrollView>
 
-          <View
-            style={[styles.inputRow, keyboardVisible && { marginBottom: 0 }]}
-          >
+          <View style={styles.inputRow}>
             <TextInput
-              style={[
-                styles.input,
-                { height: Math.min(inputHeight, 80) }, // Dynamically adjust height, max 80
-              ]}
+              style={[styles.input, { height: Math.min(inputHeight, 80) }]}
               placeholder="Type a message"
               placeholderTextColor="#9aa0a6"
               value={input}
@@ -356,28 +383,29 @@ export default ConversationScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    //backgroundColor: Colors.backgroundLight,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 12,
-    //backgroundColor: "#ffffff",
   },
   headerLeft: {
-    width: 50, // Fixed width for consistent spacing
+    width: 40,
     alignItems: "flex-start",
   },
   headerCenter: {
-    flex: 1, // Take up remaining space
+    flex: 1,
     alignItems: "center",
+    borderWidth: 0,
+    maxWidth: "60%",
+    marginHorizontal: 2,
   },
   headerRight: {
-    width: 100, // Fixed width for consistent spacing
+    width: 110,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     borderWidth: 0,
   },
   title: {
@@ -388,28 +416,6 @@ const styles = StyleSheet.create({
   messages: {
     flex: 1,
     paddingHorizontal: 12,
-  },
-  bubble: {
-    maxWidth: "78%",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
-    marginVertical: 6,
-    elevation: 0,
-  },
-  bubbleIncoming: {
-    alignSelf: "flex-start",
-    //backgroundColor: "#ffffff",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#e5e7eb",
-  },
-  bubbleOutgoing: {
-    alignSelf: "flex-end",
-    //backgroundColor: Colors.primaryGreen,
-  },
-  bubbleText: {
-    fontSize: 15,
-    color: "#202124",
   },
   meta: {
     marginTop: 4,

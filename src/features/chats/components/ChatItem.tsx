@@ -12,22 +12,23 @@ import TypingAnimatedDots from "features/shared/components/elements/TypingAnimat
 interface ChatItemProps {
   discussion: Discussion;
   otherUser: User | null;
+  isUnread: boolean;
   onPress?: () => void;
 }
 
 const ChatItem: React.FC<ChatItemProps> = ({
   discussion,
   otherUser,
+  isUnread = true,
   onPress,
 }) => {
   const chatName = otherUser
-    ? `${otherUser.name} ${otherUser.lastName || ""}`
-    : "Unknown";
+    ? otherUser.name ?otherUser.lastName?`${otherUser.name} ${otherUser.lastName}`:`${otherUser.name}`:otherUser?.pseudo?otherUser.pseudo:otherUser.email
+    : "Unknownnnn"
 
-  const lastMessage = Object.values(discussion.messages).pop();
-  const isUnread =
-    lastMessage &&
-    lastMessage.timestamp > (discussion.lastMessageTimestamp || 0);
+  const lastMessage = discussion.messages
+    ? Object.values(discussion.messages).pop()
+    : null;
 
   let timeText = "";
   if (lastMessage?.timestamp) {
@@ -45,10 +46,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
       timeText = format(ts, "dd/MM/yyyy");
     }
   }
-  // const getStatusColor = () => {
-  //   if (otherUser.isActive) return Colors.textSecondary
-  //   return Colors.primaryGreen;
-  // };
+
   if (!otherUser) {
     return null; // or a placeholder
   }
@@ -96,7 +94,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
             {discussion.lastMessageSenderId &&
             discussion?.lastMessageSenderId === otherUser.id
               ? ""
-              : "You: "}{" "}
+              : "You: "}
             {lastMessage?.messageBody || "No messages yet"}
           </Text>
         )}
@@ -156,6 +154,9 @@ const styles = StyleSheet.create({
   },
   rightContainer: {
     alignItems: "flex-end",
+    borderWidth: 0,
+    justifyContent: "space-between",
+    height: 40,
   },
   timestamp: {
     fontSize: 12,

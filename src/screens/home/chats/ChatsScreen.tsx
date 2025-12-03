@@ -24,6 +24,7 @@ import { useUser } from "context/UserContext";
 import userService from "services/userService";
 import { ref, onValue, off } from "firebase/database";
 import { db } from "configs/firebase";
+import CircleAvatar from "features/shared/components/elements/CircleAvatar";
 
 const ChatsScreen: React.FC = () => {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
@@ -36,35 +37,35 @@ const ChatsScreen: React.FC = () => {
       NativeStackNavigationProp<RootStackParamList, "ChatsScreen">
     >();
 
-    useEffect(() => {
+  useEffect(() => {
     const discussionsRef = ref(db, "All_Discussions");
-  
+
     const handleDiscussionsSnapshot = (snapshot: any) => {
       const discussionsData = snapshot.val();
       const fetchedDiscussions: Discussion[] = [];
-  
+
       if (discussionsData) {
         Object.keys(discussionsData).forEach((discussionId) => {
           const discussion = discussionsData[discussionId];
-  
+
           if (discussion.participantIds.includes(currentUser?.id)) {
             fetchedDiscussions.push(discussion);
           }
         });
-  
+
         console.info("[Chats] fetched discussions are ", fetchedDiscussions);
-  
+
         fetchedDiscussions.sort(
           (a, b) =>
             (b.lastMessageTimestamp || 0) - (a.lastMessageTimestamp || 0)
         );
       }
-  
+
       setDiscussions(fetchedDiscussions);
     };
-  
+
     onValue(discussionsRef, handleDiscussionsSnapshot);
-  
+
     return () => {
       off(discussionsRef, "value", handleDiscussionsSnapshot);
     };
@@ -74,8 +75,6 @@ const ChatsScreen: React.FC = () => {
   const usersMapRef = useRef<Record<string, User>>({});
 
   useEffect(() => {
-    
-
     discussions.forEach((discussion) => {
       discussion.participantIds.forEach((id) => {
         if (id !== currentUser?.id && !userRefs.current[id]) {
@@ -86,7 +85,7 @@ const ChatsScreen: React.FC = () => {
             const user = snapshot.val() as User;
             if (user) {
               usersMapRef.current[user.id] = user;
-              setUsersMap({ ...usersMapRef.current }); // Update state with the latest users
+              setUsersMap({ ...usersMapRef.current });
             }
           });
 
@@ -101,7 +100,6 @@ const ChatsScreen: React.FC = () => {
   }, [discussions, currentUser?.id]);
 
   const filteredChats = discussions.filter((chat) => {
-
     if (search.trim() === "") {
       return true; // Include all chats if search is empty
     }
@@ -143,10 +141,18 @@ const ChatsScreen: React.FC = () => {
             Let's connect
           </Text>
         </View>
-        <Image
-          source={{ uri: currentUser?.profileImageUrl }}
-          style={styles.image}
-        />
+        {currentUser?.profileImageUrl ? (
+          <Image
+            source={{ uri: currentUser?.profileImageUrl }}
+            style={styles.image}
+          />
+        ) : (
+          <CircleAvatar
+            letter={
+              currentUser?.name?.charAt(0) || currentUser?.email?.charAt(0)
+            }
+          />
+        )}
       </View>
 
       <View style={styles.searchContainer}>
@@ -181,42 +187,60 @@ const ChatsScreen: React.FC = () => {
         ))}
       </View>
 
+      <Text style={styles.sectionHeader}>Chats</Text>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <SectionList
-          sections={[{ title: "Chats", data: filteredChats }]}
-          ListEmptyComponent={()=><View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
-            <Text style={{fontSize:16,fontWeight:"500",color:Colors.textSecondary}}>
-              Loading chats ...
-            </Text>
-          </View>}  
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            const otherUserId = item.participantIds.find(
-              (id) => id !== currentUser?.id
-            );
-            const otherUser = otherUserId ? usersMap[otherUserId] : null;
-
-            return (
-              <ChatItem
-                discussion={item}
-                otherUser={otherUser}
-                onPress={() => {
-                  const userString = JSON.stringify(otherUser);
-                  navigation.navigate("ConversationScreen", {
-                    discussionId: item.id,
-                    secondUser: userString,
-                  });
+        {filteredChats.length > 0 ? (
+          <SectionList
+            sections={[{ data: filteredChats }]}
+            ListEmptyComponent={() => (
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
-              />
-            );
-          }}
-          renderSectionHeader={({ section }) => (
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-          )}
-        />
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "500",
+                    color: Colors.textSecondary,
+                  }}
+                >
+                  Loading chats ...
+                </Text>
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => {
+              const otherUserId = item.participantIds.find(
+                (id) => id !== currentUser?.id
+              );
+              const otherUser = otherUserId ? usersMap[otherUserId] : null;
+
+              return (
+                <ChatItem
+                  discussion={item}
+                  otherUser={otherUser}
+                  isUnread={item.readBy[currentUser?.id || ""] === false}
+                  onPress={() => {
+                    const userString = JSON.stringify(otherUser);
+                    navigation.navigate("ConversationScreen", {
+                      discussionId: item.id,
+                      secondUser: userString,
+                    });
+                  }}
+                />
+              );
+            }}
+          />
+        ) : (
+          <Text style={styles.emptySection}>No Chats Available</Text>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -292,5 +316,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginVertical: 10,
+  },
+  emptySection: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: 40,
   },
 });

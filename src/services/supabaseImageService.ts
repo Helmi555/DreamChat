@@ -59,7 +59,7 @@ export const uploadProfileImage = async (
 export const uploadDiscussionBackgroundImage = async (
   discussionId: string,
   imageUri: string,
-  oldImageUrl?: string
+  oldImageUrl?: string|null
 ): Promise<string> => {
   try {
     if (oldImageUrl) {

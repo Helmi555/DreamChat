@@ -4,6 +4,7 @@ import { Colors } from "colors";
 import { Message } from "types/Chat";
 import { User } from "types/User";
 import CircleAvatar from "features/shared/components/elements/CircleAvatar";
+import { Ionicons } from "@expo/vector-icons";
 
 interface MessageItemProps {
   message: Message;
@@ -17,7 +18,6 @@ interface MessageItemProps {
 const MessageItem: React.FC<MessageItemProps> = ({
   message,
   isSender,
-  senderProfileImage,
   secondUserName,
   receiverProfileImage,
   seen,
@@ -56,10 +56,27 @@ const MessageItem: React.FC<MessageItemProps> = ({
         >
           {message.messageBody}
         </Text>
-        <Text style={[styles.timestamp,{color: isSender ? "#ffffffff" : "#555"}]}>
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-        {isSender && seen && <Text style={styles.seenIndicator}>Seen</Text>}
+        <View style={styles.rightContainer}> 
+          <Text
+            style={[
+              styles.timestamp,
+              { color: isSender ? "#ffffffff" : "#555" },
+            ]}
+          >
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+          {isSender&& seen && (
+            <Ionicons
+              style={styles.seenIndicator}
+              name="checkmark-done"
+              size={16}
+              color={Colors.primaryBlue}
+            />
+          )}
+        </View>
       </View>
     </View>
   );
@@ -89,7 +106,7 @@ const styles = StyleSheet.create({
   },
   bubble: {
     maxWidth: "75%",
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingTop: 6,
     paddingBottom: 10,
     borderTopRightRadius: 14,
@@ -108,7 +125,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 2,
   },
   messageText: {
-    fontSize: 15,
+    fontSize: 16,
   },
   senderText: {
     color: "#fff",
@@ -122,9 +139,13 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   seenIndicator: {
-    fontSize: 11,
-    color: Colors.primaryGreen,
-    marginTop: 4,
-    textAlign: "right",
+    textAlign: "center",
+  },
+  rightContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent:"flex-end",
+    gap:4,
+    borderWidth:0
   },
 });

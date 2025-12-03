@@ -39,8 +39,39 @@ export const getOtherParticipantId = (
   return ids[0] === currentUserId ? ids[1] : ids[0];
 };
 
+
+
 export const messagesService = {
   // Send a message (auto-creates discussion if first message)
+
+async createDiscussion(
+  senderId: string,
+  receiverId: string
+): Promise<string> {
+  const generatedDiscussionId = generateDiscussionId(senderId, receiverId);
+  const discussionRef = db.ref(`${DISCUSSIONS_PATH}/${generatedDiscussionId}`);
+  const snapshot = await discussionRef.once("value");
+
+  if (!snapshot.exists()) {
+    const newDiscussion: Discussion = {
+      id: generatedDiscussionId,
+      participantIds: [senderId, receiverId],
+      messages: {},
+      lastMessageTimestamp: Date.now(),
+      lastMessageSenderId: senderId,
+      readBy: { [senderId]: true, [receiverId]: false },
+      backgroundImageUrl:null,
+      lastMessageText:null,
+      typing:{},
+
+    };
+    await discussionRef.set(newDiscussion);
+    console.log(`✅ New discussion created: ${generatedDiscussionId}`);
+  }
+
+  return generatedDiscussionId;
+},
+
   async sendMessage(
     discussionId: string,
     senderId: string,
@@ -71,12 +102,13 @@ export const messagesService = {
       if (!snapshot.exists()) {
         // Create new discussion
         const newDiscussion: Discussion = {
-          id: discussionId,
+          id: discussionId, // Ensure the correct ID is used here
           participantIds: [senderId, receiverId],
           messages: { [messageId]: message },
           lastMessageText: messageBody,
           lastMessageTimestamp: Date.now(),
           lastMessageSenderId: senderId,
+          readBy: { [senderId]: true, [receiverId]: false },
         };
         await discussionRef.set(newDiscussion);
         console.log(`✅ New discussion created: ${discussionId}`);
@@ -92,6 +124,7 @@ export const messagesService = {
         lastMessageText: messageBody,
         lastMessageTimestamp: Date.now(),
         lastMessageSenderId: senderId,
+        readBy: { [senderId]: true, [receiverId]: false },
       });
 
       console.log(`✅ Message sent to discussion: ${discussionId}`);
@@ -249,6 +282,11 @@ export const messagesService = {
     isTyping: boolean
   ): Promise<void> {
     try {
+      console.info("[Setting Typing] conversationId: ",discussionId,"userId: ",userId)
+      if (!discussionId || !userId) {
+        throw new Error("Discussion ID and User ID are required");
+      
+      }
       const typingUpdate: any = {};
       typingUpdate[`typing/${userId}`] = isTyping;
 
@@ -334,6 +372,20 @@ export const messagesService = {
       console.log(`✅ Discussion background updated: ${discussionId}`);
     } catch (error) {
       console.error("❌ Error updating discussion background:", error);
+      throw error;
+    }
+  },
+  async markDiscussionAsRead(
+    discussionId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      await db
+        .ref(`${DISCUSSIONS_PATH}/${discussionId}/readBy/${userId}`)
+        .set(true);
+      console.log(`✅ Discussion marked as read by ${userId}`);
+    } catch (error) {
+      console.error("❌ Error marking discussion as read:", error);
       throw error;
     }
   },
