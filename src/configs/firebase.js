@@ -1,8 +1,8 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { initializeAuth, getReactNativePersistence } from "firebase/auth";
-import { getDatabase } from "firebase/database";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-import { FIREBASE_API_KEY } from "@env";
+import firebase from "firebase/compat/app";
+import "firebase/compat/auth";
+import "firebase/compat/database";
+import "firebase/compat/storage";
+import { FIREBASE_API_KEY } from "@env"; // this MUST exist
 
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
@@ -14,11 +14,12 @@ const firebaseConfig = {
   databaseURL: "https://dreamchat-5b840-default-rtdb.europe-west1.firebasedatabase.app/",
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Avoid duplicate initialization — REQUIRED in RN
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
-
-export const db = getDatabase(app);
-export default app;
+export const auth = firebase.auth();
+export const db = firebase.database();
+export const storage = firebase.storage();
+export default firebase;

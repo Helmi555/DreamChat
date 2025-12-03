@@ -18,7 +18,7 @@ import { Colors } from "colors";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useUser } from "context/UserContext";
-import { updateUserProfile } from "services/userService";
+import { isPseudoAvailable, updateUserProfile } from "services/userService";
 import ImagePickerModal from "features/settings/components/ImagePickerModal";
 import { uploadProfileImage } from "services/supabaseImageService";
 
@@ -29,20 +29,29 @@ type RootStackParamList = {
 
 const EditProfileScreen: React.FC = () => {
   const { currentUser, setCurrentUser } = useUser();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [firstName, setFirstName] = useState(currentUser?.name || "");
   const [lastName, setLastName] = useState(currentUser?.lastName || "");
-  const [phoneNumber, setPhoneNumber] = useState(currentUser?.phoneNumber || "");
-  const [isEditing, setIsEditing] = useState(false)
+  const [pseudo, setPseudo] = useState(currentUser?.pseudo || "");
+  const [phoneNumber, setPhoneNumber] = useState(
+    currentUser?.phoneNumber || ""
+  );
+  const [isEditing, setIsEditing] = useState(false);
   const [isImagePickerVisible, setIsImagePickerVisible] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(currentUser?.profileImageUrl || null);
+  const [profileImage, setProfileImage] = useState<string | null>(
+    currentUser?.profileImageUrl || null
+  );
   const [isUploading, setIsUploading] = useState(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission required", "Sorry, we need camera roll permissions to make this work!");
+      Alert.alert(
+        "Permission required",
+        "Sorry, we need camera roll permissions to make this work!"
+      );
       return;
     }
 
@@ -61,7 +70,10 @@ const EditProfileScreen: React.FC = () => {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission required", "Sorry, we need camera permissions to make this work!");
+      Alert.alert(
+        "Permission required",
+        "Sorry, we need camera permissions to make this work!"
+      );
       return;
     }
 
@@ -87,13 +99,22 @@ const EditProfileScreen: React.FC = () => {
       return;
     }
 
+    if (!(await isPseudoAvailable(pseudo, currentUser.id))) {
+      Alert.alert("Error", "Pseudo is already taken");
+      return;
+    }
+
     setIsUploading(true);
 
     try {
       let finalImageUrl = currentUser.profileImageUrl;
 
-      if (profileImage && !profileImage.startsWith('http')) {
-        finalImageUrl = await uploadProfileImage(currentUser.id, profileImage, currentUser.profileImageUrl);
+      if (profileImage && !profileImage.startsWith("http")) {
+        finalImageUrl = await uploadProfileImage(
+          currentUser.id,
+          profileImage,
+          currentUser.profileImageUrl
+        );
       }
 
       await updateUserProfile(currentUser.id, {
@@ -101,6 +122,7 @@ const EditProfileScreen: React.FC = () => {
         lastName: lastName,
         phoneNumber: phoneNumber,
         profileImageUrl: finalImageUrl || "",
+        pseudo: pseudo,
       });
 
       setCurrentUser({
@@ -109,6 +131,7 @@ const EditProfileScreen: React.FC = () => {
         lastName: lastName,
         phoneNumber: phoneNumber,
         profileImageUrl: finalImageUrl || undefined,
+        pseudo: pseudo,
       });
 
       setIsEditing(false);
@@ -170,7 +193,6 @@ const EditProfileScreen: React.FC = () => {
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Image Section */}
         <View style={styles.profileImageContainer}>
           <TouchableOpacity
             onPress={
@@ -208,6 +230,17 @@ const EditProfileScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+        <Text
+          style={{
+            alignSelf: "center",
+            marginBottom: 10,
+            fontSize: 14,
+            fontWeight: "600",
+            color: Colors.textThirdly,
+          }}
+        >
+          {currentUser?.email}
+        </Text>
 
         {/* Form Fields */}
         <View style={styles.formContainer}>
@@ -233,6 +266,30 @@ const EditProfileScreen: React.FC = () => {
               onChangeText={setLastName}
               editable={isEditing}
               placeholder="Enter your last name"
+              placeholderTextColor={Colors.textThirdly}
+            />
+          </View>
+          <View style={styles.inputContainer}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={styles.label}>Pseudo</Text>
+              <Text
+                style={{ fontSize: 12, color: Colors.errorRed, marginRight: 4 }}
+              >
+                Should be unique
+              </Text>
+            </View>
+            <TextInput
+              style={[styles.input, !isEditing && styles.disabledInput]}
+              value={pseudo}
+              onChangeText={setPseudo}
+              editable={isEditing}
+              placeholder="Enter your pseudo"
               placeholderTextColor={Colors.textThirdly}
             />
           </View>
@@ -331,8 +388,9 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: 24,
     position: "relative",
+    borderWidth:0
   },
   profileImage: {
     width: 120,
@@ -341,7 +399,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundGray,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 3,
+    borderWidth: 0.5,
     borderColor: Colors.filterActiveBg,
     overflow: "hidden",
   },

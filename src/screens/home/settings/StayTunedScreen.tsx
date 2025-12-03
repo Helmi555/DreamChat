@@ -7,7 +7,7 @@ import Svg, {
   LinearGradient,
   Stop,
 } from "react-native-svg";
-import { Colors } from "colors"; // Adjust import path as needed
+import { Colors } from "colors";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProp, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,13 +17,13 @@ const { width } = Dimensions.get("window");
 
 type RootStackParamList = {
   StayTuned: { screenTitle: string };
-};
+}
 
 type StayTunedScreenRouteProp = RouteProp<RootStackParamList, 'StayTuned'>;
 
 type StayTunedScreenProps = {
   route?: RouteProp<any, any>; 
-};
+}
 
 
 const StayTunedScreen: React.FC<StayTunedScreenProps> = ({ route }) => {

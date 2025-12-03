@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   StyleSheet,
@@ -19,9 +19,11 @@ import { Ionicons } from "@expo/vector-icons";
 import GradientButton from "features/shared/components/buttons/GradientButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "configs/firebase";
+import { auth, db } from "configs/firebase";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from "context/UserContext";
+import { User } from "types/User";
 
 const rememberedUserKey = "rememberedUser";
 
@@ -33,31 +35,36 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+const { setCurrentUser } = useUser();
 
-  const onSubmitPress = async () => {
-    if (username == "" || password === "") {
-      setError("Please fill in all fields.");
-      return;
+
+const onSubmitPress = async () => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, username, password);
+    const firebaseUser = userCredential.user;
+
+    // Fetch full profile
+    const snapshot = await db.ref(`profiles/${firebaseUser.uid}`).get();
+    const fullProfile = snapshot.exists() ? (snapshot.val() as User) : {
+      id: firebaseUser.uid,
+      email: firebaseUser.email!,
+    };
+
+    if (rememberMe) {
+      await AsyncStorage.setItem(rememberedUserKey, JSON.stringify(fullProfile));
+      console.info("Login , user saved locally by ",JSON.stringify(fullProfile))
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(username)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    try {
-      Keyboard.dismiss();
-      setError("");
-      const user=await signInWithEmailAndPassword(auth, username, password);
-      if (rememberMe) {
-        await AsyncStorage.setItem(rememberedUserKey, JSON.stringify(user));
-        console.info("user saved " + username);
-      }
-      navigation.replace("Home");
-    } catch (error) {
-      setError("Invalid email or password.");
-    }
-  };
+    setCurrentUser(fullProfile); // update context
+    navigation.replace("Home");
+  } catch {
+    setError("Invalid email or password.");
+  }
+};
+useEffect(() => {
+  console.log("Remember Me is now:", rememberMe);
+}, [rememberMe]);
+
 
   const onSignUpPress = () => navigation.navigate("Register");
 

@@ -3,9 +3,10 @@ import { createMaterialBottomTabNavigator } from "@react-navigation/material-bot
 import { StyleSheet } from "react-native";
 import GroupScreen from "./GroupScreen";
 import MyAccountScreen from "./MyAccountScreen";
-import ListScreen from "./ListScreen";
+//import ListScreen from "./ChatsScreen";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../colors";
+import MessagesScreen from "./messages/MessagesScreen";
 
 const Tab = createMaterialBottomTabNavigator();
 
@@ -19,7 +20,7 @@ const Home: React.FC = () => {
   return (
     <Tab.Navigator
       shifting={true}
-      initialRouteName="Settings"
+      initialRouteName="Chats"
       
       barStyle={{
         backgroundColor: Colors.backgroundLight,
@@ -32,9 +33,9 @@ const Home: React.FC = () => {
     >
       <Tab.Screen
         name="List"
-        component={ListScreen}
+        component={MessagesScreen}
         options={{
-          title: "Chats",
+          title: "Settings",
           tabBarIcon: ({ color }) => (
             <Ionicons name="chatbox-ellipses" size={24} color={color} />
           ),
@@ -59,6 +60,7 @@ const Home: React.FC = () => {
           ),
         }}
       />
+
     </Tab.Navigator>
   );
 };

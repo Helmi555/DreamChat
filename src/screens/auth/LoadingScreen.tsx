@@ -7,7 +7,8 @@ import { NavigationProp } from "@react-navigation/native";
 import { Colors } from "colors";
 import AnimatedDots from "features/shared/components/elements/AnimatedDots";
 import { useUser } from "context/UserContext";
-import { auth } from "configs/firebase";
+import { User } from "types/User";
+import firebase from "configs/firebase"; // your compat init file
 
 const { width, height } = Dimensions.get("window");
 const rememberedUserKey = "rememberedUser";
@@ -63,31 +64,46 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
       ])
     ),
   ]).start();
+  
+useEffect(() => {
+  const bootstrap = async () => {
+    // 1️⃣ Load remembered user from AsyncStorage (offline)
+    const storedUserStr = await AsyncStorage.getItem(rememberedUserKey);
+    const storedUser: User | null = storedUserStr ? JSON.parse(storedUserStr) : null;
 
-  useEffect(() => {
-    const checkCredentials = async () => {
-      await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+    if (storedUser) {
+      setCurrentUser(storedUser); // use offline remembered user
+      console.log("Loaded remembered user:", storedUser.email);
+      navigation.replace("Home"); // skip login
+      return;
+    }
 
-      try {
-        const currentAuthUser = auth.currentUser;
+    // 2️⃣ Wait for splash
+    await new Promise<void>((resolve) => setTimeout(resolve, 2000));
 
-        if (currentAuthUser) {
-          // User is authenticated - go to Home
-          console.info("User authenticated:", currentAuthUser.email);
-          navigation.replace("Home");
-        } else {
-          // No authenticated user - go to Login
-          console.info("No authenticated user, going to Login");
-          await AsyncStorage.removeItem(rememberedUserKey); // Clean up old storage
-          navigation.replace("Login");
+    // 3️⃣ Check Firebase Auth
+    const currentAuthUser = firebase.auth().currentUser;
+    if (currentAuthUser) {
+      // Listen for realtime DB updates
+      const profileRef = firebase.database().ref(`profiles/${currentAuthUser.uid}`);
+      profileRef.on("value", async (snapshot) => {
+        const profileData = snapshot.val() as User;
+        if (profileData) {
+          setCurrentUser(profileData);
+          await AsyncStorage.setItem(rememberedUserKey, JSON.stringify(profileData));
         }
-      } catch (error) {
-        console.error("Error checking credentials:", error);
-        navigation.replace("Login");
-      }
-    };
-    checkCredentials();
-  }, [navigation]);
+      });
+
+      navigation.replace("Home");
+    } else {
+      console.info("No authenticated user, going to Login");
+      navigation.replace("Login");
+    }
+  };
+
+  bootstrap();
+}, [navigation]);
+
 
   return (
     <LinearGradient
