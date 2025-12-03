@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../colors";
 import Chats from "./Chats";
 import ProfilesStack from "./Profiles";
+import GroupsStack from "./Groups";
 
 const Tab = createMaterialBottomTabNavigator();
 
@@ -34,7 +35,7 @@ const Home: React.FC = () => {
         name="Chats"
         component={Chats}
         options={{
-          title: "Settings",
+          title: "Chats",
           tabBarIcon: ({ color }) => (
             <Ionicons name="chatbox-ellipses" size={24} color={color} />
           ),
@@ -50,12 +51,21 @@ const Home: React.FC = () => {
         }}
       />
       <Tab.Screen
+        name="Groups"
+        component={GroupsStack}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="people-circle" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsStack}
         
         options={{
           tabBarIcon: ({ color }) => (
-            <Ionicons name="person-circle" size={24} color={color} />
+            <Ionicons name="settings" size={24} color={color} />
           ),
         }}
       />

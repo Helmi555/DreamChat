@@ -350,7 +350,6 @@ const ConversationScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Add extra space at bottom for better scrolling */}
             <View style={{ height: 20 }} />
           </ScrollView>
 

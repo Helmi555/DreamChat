@@ -358,6 +358,7 @@ const ProfilesScreen: React.FC = () => {
                   key={profile.id}
                   user={profile}
                   onPress={() => handleProfilePress(profile)}
+                  showIndicator
                 />
               ))}
             </>

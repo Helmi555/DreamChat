@@ -12,6 +12,8 @@ interface ProfileItemProps {
   showStatus?: boolean;
   showLastActive?: boolean;
   variant?: "default" | "compact" | "detailed";
+  isSelected?: boolean;
+  showIndicator?: boolean;
 }
 
 const gradients = [
@@ -33,6 +35,8 @@ const ProfileItem: React.FC<ProfileItemProps> = ({
   showStatus = true,
   showLastActive = true,
   variant = "default",
+  isSelected = false,
+  showIndicator = false,
 }) => {
   const gradientColors = getGradientColors(user.id || user.email);
 
@@ -69,179 +73,149 @@ const ProfileItem: React.FC<ProfileItemProps> = ({
 
   const Container = onPress ? TouchableOpacity : View;
 
-  if (variant === "compact") {
-    return (
-      <Container
-        style={styles.compactContainer}
-        onPress={onPress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.avatarContainer}>
-          {user.profileImageUrl ? (
-            <Image
-              source={{ uri: user.profileImageUrl }}
-              style={styles.compactAvatar}
-            />
-          ) : (
-            <LinearGradient
-              colors={gradientColors}
-              style={styles.compactGradientAvatar}
-            >
-              <Text style={styles.compactAvatarText}>{getInitials()}</Text>
-            </LinearGradient>
-          )}
-          {showStatus && (
-            <View
-              style={[
-                styles.compactStatusBadge,
-                { backgroundColor: getStatusColor() },
-              ]}
-            />
-          )}
-        </View>
-        <Text style={styles.compactName} numberOfLines={1}>
-          {getDisplayName()}
-        </Text>
-      </Container>
-    );
-  }
+  const containerStyle = [
+    variant === "compact"
+      ? styles.compactContainer
+      : variant === "detailed"
+      ? styles.detailedContainer
+      : styles.defaultContainer,
+    isSelected && styles.selectedContainer, // Apply selected style if true
+  ];
 
-  if (variant === "detailed") {
-    return (
-      <Container
-        style={styles.detailedContainer}
-        onPress={onPress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.avatarContainer}>
-          {user.profileImageUrl ? (
-            <Image
-              source={{ uri: user.profileImageUrl }}
-              style={styles.detailedAvatar}
-            />
-          ) : (
-            <LinearGradient
-              colors={gradientColors}
-              style={styles.detailedGradientAvatar}
-            >
-              <Text style={styles.detailedAvatarText}>{getInitials()}</Text>
-            </LinearGradient>
-          )}
-          {showStatus && (
-            <View
-              style={[
-                styles.detailedStatusBadge,
-                { backgroundColor: getStatusColor() },
-              ]}
-            />
-          )}
-        </View>
-
-        <View style={styles.detailedInfo}>
-          <View style={styles.nameRow}>
-            <Text style={styles.detailedName}>{getDisplayName()}</Text>
-            {user.pseudo && <Text style={styles.pseudo}>@{user.pseudo}</Text>}
-          </View>
-
-          <Text style={styles.detailedEmail}>{user.email}</Text>
-
-          {user.phoneNumber && (
-            <View style={styles.phoneRow}>
-              <Ionicons
-                name="call-outline"
-                size={14}
-                color={Colors.textSecondary}
-              />
-              <Text style={styles.phone}>{user.phoneNumber}</Text>
-            </View>
-          )}
-
-          {showLastActive && (
-            <View style={styles.statusRow}>
-              <Ionicons
-                name={user.isActive ? "ellipse" : "time-outline"}
-                size={12}
-                color={getStatusColor()}
-              />
-              <Text style={[styles.statusText, { color: getStatusColor() }]}>
-                {getStatusText()}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.actions}>
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={Colors.textSecondary}
-          />
-        </View>
-      </Container>
-    );
-  }
-
-  // Default variant
   return (
-    <Container
-      style={styles.defaultContainer}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
+    <Container style={containerStyle} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.avatarContainer}>
         {user.profileImageUrl ? (
           <Image
             source={{ uri: user.profileImageUrl }}
-            style={styles.defaultAvatar}
+            style={
+              variant === "compact"
+                ? styles.compactAvatar
+                : variant === "detailed"
+                ? styles.detailedAvatar
+                : styles.defaultAvatar
+            }
           />
         ) : (
           <LinearGradient
             colors={gradientColors}
-            style={styles.defaultGradientAvatar}
+            style={
+              variant === "compact"
+                ? styles.compactGradientAvatar
+                : variant === "detailed"
+                ? styles.detailedGradientAvatar
+                : styles.defaultGradientAvatar
+            }
           >
-            <Text style={styles.defaultAvatarText}>{getInitials()}</Text>
+            <Text
+              style={
+                variant === "compact"
+                  ? styles.compactAvatarText
+                  : variant === "detailed"
+                  ? styles.detailedAvatarText
+                  : styles.defaultAvatarText
+              }
+            >
+              {getInitials()}
+            </Text>
           </LinearGradient>
         )}
         {showStatus && (
           <View
             style={[
-              styles.defaultStatusBadge,
+              variant === "compact"
+                ? styles.compactStatusBadge
+                : variant === "detailed"
+                ? styles.detailedStatusBadge
+                : styles.defaultStatusBadge,
               { backgroundColor: getStatusColor() },
             ]}
           />
         )}
-      </View>
-
-      <View style={styles.defaultInfo}>
-        <View style={styles.nameRow}>
-          <Text style={styles.defaultName}>{getDisplayName()}</Text>
-        </View>
-
-        <Text style={styles.defaultEmail}>{user.email}</Text>
-
-        {showLastActive && (
-          <View style={styles.defaultStatusRow}>
+        {isSelected && (
+          <View style={styles.checkmarkContainer}>
             <Ionicons
-              name={user.isActive ? "ellipse" : "time-outline"}
-              size={10}
-              color={getStatusColor()}
+              name="checkmark-circle"
+              size={20}
+              color={Colors.primaryGreen}
             />
-            <Text
-              style={[styles.defaultStatusText, { color: getStatusColor() }]}
-            >
-              {getStatusText()}
-            </Text>
           </View>
         )}
       </View>
 
-      <View style={styles.defaultActions}>
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color={Colors.textSecondary}
-        />
+      <View
+        style={
+          variant === "compact"
+            ? null
+            : variant === "detailed"
+            ? styles.detailedInfo
+            : styles.defaultInfo
+        }
+      >
+        <View style={styles.nameRow}>
+          <Text
+            style={
+              variant === "compact"
+                ? styles.compactName
+                : variant === "detailed"
+                ? styles.detailedName
+                : styles.defaultName
+            }
+          >
+            {getDisplayName()}
+          </Text>
+        </View>
+
+        {variant !== "compact" && (
+          <Text
+            style={
+              variant === "detailed"
+                ? styles.detailedEmail
+                : styles.defaultEmail
+            }
+          >
+            {user.email}
+          </Text>
+        )}
+
+        {variant === "detailed" && user.phoneNumber && (
+          <View style={styles.phoneRow}>
+            <Ionicons
+              name="call-outline"
+              size={14}
+              color={Colors.textSecondary}
+            />
+            <Text style={styles.phone}>{user.phoneNumber}</Text>
+          </View>
+        )}
+
+        {variant !== "compact" && showLastActive && (
+          <View style={styles.statusRow}>
+            <Ionicons
+              name={user.isActive ? "ellipse" : "time-outline"}
+              size={12}
+              color={getStatusColor()}
+            />
+            <Text style={styles.statusText}>{getStatusText()}</Text>
+          </View>
+        )}
       </View>
+
+      {variant !== "compact" && (
+        <View
+          style={
+            variant === "detailed" ? styles.actions : styles.defaultActions
+          }
+        >
+          {showIndicator && (
+            <Ionicons
+              name="chevron-forward"
+              size={variant === "detailed" ? 20 : 18}
+              color={Colors.textSecondary}
+            />
+          )}
+        </View>
+      )}
     </Container>
   );
 };
@@ -379,8 +353,9 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "600",
     marginLeft: 6,
+    color: "#333",
   },
   actions: {
     paddingLeft: 8,
@@ -464,6 +439,21 @@ const styles = StyleSheet.create({
   // Shared
   avatarContainer: {
     position: "relative",
+  },
+  checkmarkContainer: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  selectedContainer: {
+    borderWidth: 2,
+    borderColor: Colors.primaryGreen,
+    borderRadius: 12,
   },
 });
 
