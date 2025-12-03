@@ -37,7 +37,6 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  // Animation sequence
   Animated.parallel([
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -64,46 +63,145 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
       ])
     ),
   ]).start();
-  
-useEffect(() => {
-  const bootstrap = async () => {
-    // 1️⃣ Load remembered user from AsyncStorage (offline)
-    const storedUserStr = await AsyncStorage.getItem(rememberedUserKey);
-    const storedUser: User | null = storedUserStr ? JSON.parse(storedUserStr) : null;
 
-    if (storedUser) {
-      setCurrentUser(storedUser); // use offline remembered user
-      console.log("Loaded remembered user:", storedUser.email);
-      navigation.replace("Home"); // skip login
-      return;
-    }
+  useEffect(() => {
+    const bootstrap = async () => {
+      console.log("🚀 LoadingScreen bootstrap started");
 
-    // 2️⃣ Wait for splash
-    await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+      try {
+        const storedUserStr = await AsyncStorage.getItem(rememberedUserKey);
+        const storedUser: User | null = storedUserStr
+          ? JSON.parse(storedUserStr)
+          : null;
 
-    // 3️⃣ Check Firebase Auth
-    const currentAuthUser = firebase.auth().currentUser;
-    if (currentAuthUser) {
-      // Listen for realtime DB updates
-      const profileRef = firebase.database().ref(`profiles/${currentAuthUser.uid}`);
-      profileRef.on("value", async (snapshot) => {
-        const profileData = snapshot.val() as User;
-        if (profileData) {
-          setCurrentUser(profileData);
-          await AsyncStorage.setItem(rememberedUserKey, JSON.stringify(profileData));
+        console.log("📱 Stored user in LoadingScreen:", storedUser?.email);
+
+        console.log("🔥 Checking Firebase Auth current user...");
+        const currentAuthUser = firebase.auth().currentUser;
+        console.log("👤 Current auth user:", currentAuthUser?.email);
+        console.log("👤 Current auth UID:", currentAuthUser?.uid);
+
+        if (currentAuthUser && currentAuthUser.uid) {
+          console.log("🟢 Auth user found, updating active status");
+
+          const profileRef = firebase
+            .database()
+            .ref(`profiles/${currentAuthUser.uid}`);
+
+          console.log("📝 Marking user as active on app start");
+          try {
+            await profileRef.update({
+              isActive: true,
+              lastActiveAt: Date.now(),
+            });
+            console.log("✅ User marked as active in database");
+
+            // Set up onDisconnect for app close
+            profileRef.onDisconnect().update({
+              isActive: false,
+              lastActiveAt: Date.now(),
+            });
+            console.log("✅ onDisconnect set up for app close");
+
+            // FETCH FRESH PROFILE & SAVE TO CONTEXT/ASYNC STORAGE (NEW)
+            try {
+              const snap = await profileRef.once("value");
+              const freshProfile = snap.val() as User | null;
+              if (freshProfile) {
+                setCurrentUser(freshProfile);
+                await AsyncStorage.setItem(
+                  rememberedUserKey,
+                  JSON.stringify(freshProfile)
+                );
+                console.log(
+                  "💾 Loaded fresh profile into context and persisted (auth user)"
+                );
+              }
+            } catch (e) {
+              console.error(
+                "❌ Failed to fetch/persist fresh profile (auth user):",
+                e
+              );
+            }
+            // END NEW
+          } catch (dbError) {
+            console.error("❌ Database update failed:", dbError);
+          }
+
+          console.log("🏠 Navigate to Home (auth user found)");
+          navigation.replace("Home");
+        } else if (storedUser) {
+          console.log(
+            "📱 Using stored user (no auth user), UID:",
+            storedUser.id
+          );
+
+          if (storedUser.id) {
+            console.log(
+              "📝 Attempting to update active status with stored UID"
+            );
+            try {
+              const profileRef = firebase
+                .database()
+                .ref(`profiles/${storedUser.id}`);
+
+              await profileRef.update({
+                isActive: true,
+                lastActiveAt: Date.now(),
+              });
+              console.log("✅ Stored user marked as active in database");
+
+              profileRef.onDisconnect().update({
+                isActive: false,
+                lastActiveAt: Date.now(),
+              });
+              console.log("✅ onDisconnect set up for stored user");
+
+              // FETCH FRESH PROFILE & SAVE TO CONTEXT/ASYNC STORAGE (NEW)
+              try {
+                const snap = await profileRef.once("value");
+                const freshProfile = snap.val() as User | null;
+                if (freshProfile) {
+                  setCurrentUser(freshProfile);
+                  await AsyncStorage.setItem(
+                    rememberedUserKey,
+                    JSON.stringify(freshProfile)
+                  );
+                  console.log(
+                    "💾 Loaded fresh profile into context and persisted (stored user)"
+                  );
+                }
+              } catch (e) {
+                console.error(
+                  "❌ Failed to fetch/persist fresh profile (stored user):",
+                  e
+                );
+              }
+              // END NEW
+            } catch (dbError) {
+              console.error("❌ Stored user database update failed:", dbError);
+            }
+          }
+
+          console.log("🏠 Navigate to Home (stored user found)");
+          navigation.replace("Home");
+        } else {
+          console.log(
+            "⏳ No user found, waiting 2 seconds then going to Login"
+          );
+          await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+          console.log("🔐 Navigate to Login (no user)");
+          navigation.replace("Login");
         }
-      });
+      } catch (error) {
+        console.error("❌ LoadingScreen bootstrap error:", error);
+        console.log("🔐 Navigate to Login (error case)");
+        navigation.replace("Login");
+      }
+    };
 
-      navigation.replace("Home");
-    } else {
-      console.info("No authenticated user, going to Login");
-      navigation.replace("Login");
-    }
-  };
-
-  bootstrap();
-}, [navigation]);
-
+    bootstrap();
+  }, [navigation, setCurrentUser]);
 
   return (
     <LinearGradient
@@ -186,7 +284,7 @@ const styles = StyleSheet.create({
   },
   securityBadge: {
     position: "absolute",
-    bottom: 30,
+    bottom: 70,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     padding: 12,
     borderRadius: 20,

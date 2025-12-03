@@ -8,7 +8,7 @@ const Stack = createNativeStackNavigator();
 
 
 
-const MyAccountScreen: React.FC = () => {
+const SettingsStack: React.FC = () => {
 return (
   <Stack.Navigator screenOptions={{ headerShown: false, statusBarStyle: 'dark' }} >
     <Stack.Screen name="SettingsMain" component={SettingsMainScreen} />
@@ -18,4 +18,4 @@ return (
   </Stack.Navigator>
 );
 };
-export default MyAccountScreen;
+export default SettingsStack;

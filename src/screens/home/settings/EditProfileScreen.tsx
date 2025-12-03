@@ -29,6 +29,7 @@ type RootStackParamList = {
 
 const EditProfileScreen: React.FC = () => {
   const { currentUser, setCurrentUser } = useUser();
+  console.info("[EDITPROFILE]Current User: ",currentUser)
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -89,6 +90,7 @@ const EditProfileScreen: React.FC = () => {
   };
 
   const handleSave = async () => {
+
     if (!firstName.trim() || !lastName.trim()) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
@@ -100,7 +102,7 @@ const EditProfileScreen: React.FC = () => {
     }
 
     if (!(await isPseudoAvailable(pseudo, currentUser.id))) {
-      Alert.alert("Error", "Pseudo is already taken");
+      Alert.alert("Error", `Pseudo '${pseudo}' is already taken`);
       return;
     }
 
@@ -168,25 +170,31 @@ const EditProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={handleCancel} activeOpacity={0.6}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-
-        <Text style={styles.title}>Edit Profile</Text>
-
-        {isEditing ? (
-          <TouchableOpacity onPress={handleSave} activeOpacity={0.6}>
-            <Text style={styles.saveButton}>Save</Text>
+        <View style={styles.headerContainer}>
+        {/* Left Section: Back Button */}
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={handleCancel} activeOpacity={0.6}>
+            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={() => setIsEditing(true)}
-            activeOpacity={0.6}
-          >
-            <Text style={styles.editButton}>Edit</Text>
-          </TouchableOpacity>
-        )}
+        </View>
+      
+        {/* Center Section: Title */}
+        <View style={styles.headerCenter}>
+          <Text style={styles.title}>Edit Profile</Text>
+        </View>
+      
+        {/* Right Section: Edit/Save Button */}
+        <View style={styles.headerRight}>
+          {isEditing ? (
+            <TouchableOpacity onPress={handleSave} activeOpacity={0.6}>
+              <Text style={styles.saveButton}>Save</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => setIsEditing(true)} activeOpacity={0.6}>
+              <Text style={styles.editButton}>Edit</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -239,7 +247,7 @@ const EditProfileScreen: React.FC = () => {
             color: Colors.textThirdly,
           }}
         >
-          {currentUser?.email}
+          {currentUser?.pseudo?currentUser.pseudo: currentUser?.email}
         </Text>
 
         {/* Form Fields */}
@@ -327,7 +335,7 @@ const EditProfileScreen: React.FC = () => {
             <View style={styles.actionButtonsContainer}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={() => setIsEditing(false)}
+                onPress={() => {setIsEditing(false),setProfileImage(currentUser?.profileImageUrl||null)}}
                 activeOpacity={0.7}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -358,8 +366,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundLight,
-  },
-  headerContainer: {
+  } , headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -367,6 +374,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.dividerGray,
+  },
+  headerLeft: {
+    width: 50, // Fixed width for consistent spacing
+    alignItems: "flex-start",
+  },
+  headerCenter: {
+    flex: 1, // Take up remaining space
+    alignItems: "center",
+  },
+  headerRight: {
+    width: 50, // Fixed width for consistent spacing
+    alignItems: "flex-end",
   },
   title: {
     fontSize: 18,
@@ -405,8 +424,8 @@ const styles = StyleSheet.create({
   },
   cameraButton: {
     position: "absolute",
-    bottom: 30,
-    right: "40%",
+    bottom: 22,
+    right: "38%",
     backgroundColor: Colors.primaryGreen,
     width: 36,
     height: 36,

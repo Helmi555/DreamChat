@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Text, TouchableOpacity } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
@@ -11,7 +11,7 @@ import ProfileImagePicker from "features/settings/components/ProfileImagePicker"
 import SettingsRowProps from "features/settings/components/SettingsRowProps";
 import { RootStackParamList } from "@/../../App";
 import { signOut } from "firebase/auth";
-import app, { auth } from "configs/firebase";
+import app, { auth, db } from "configs/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "context/UserContext";
 import { Database, get, getDatabase, ref } from "firebase/database";
@@ -70,16 +70,64 @@ const SettingsMainScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
+const onLogoutPress = async () => {
+  console.log("🔄 Logout pressed - starting logout process");
   
+  // Get UID from context instead of auth.currentUser (which is undefined during logout)
+  const uid = currentUser?.id;
+  console.log("👤 Current user UID from context:", uid);
+  
+  if (!uid) {
+    console.log("❌ No user UID found from context, trying auth.currentUser");
+    // Fallback to auth.currentUser
+    const authUid = auth.currentUser?.uid;
+    if (authUid) {
+      console.log("✅ Found UID from auth.currentUser:", authUid);
+      // Use the auth UID
+      try {
+        console.log("📝 Updating user status to inactive in database");
+        await db.ref(`profiles/${authUid}`).update({
+          isActive: false,
+          lastActiveAt: Date.now(),
+        });
+        console.log("✅ User status updated to inactive");
+      } catch (err) {
+        console.error("❌ Failed to update user status:", err);
+      }
+    }
+  } else {
+    try {
+      console.log("📝 Updating user status to inactive in database");
+      await db.ref(`profiles/${uid}`).update({
+        isActive: false,
+        lastActiveAt: Date.now(),
+      });
+      console.log("✅ User status updated to inactive");
+    } catch (err) {
+      console.error("❌ Failed to update user status:", err);
+    }
+  }
 
-  const onBackPress = () => {};
+  try {
+    console.log("🚪 Signing out from Firebase Auth");
+    // 2️⃣ sign out
+    await auth.signOut();
+    console.log("✅ Firebase sign out successful");
 
-  const onLogoutPress = async () => {
-    await signOut(auth);
+    console.log("🗑️ Removing user from local storage");
+    // 3️⃣ remove local storage
     await AsyncStorage.removeItem(rememberedUserKey);
-    console.info("user removed form storage");
+    console.log("✅ Local storage cleared");
+
+    console.log("🔄 Navigating to Login screen");
+    // 4️⃣ navigate
     navigation.replace("Login");
-  };
+    console.log("✅ Navigation to Login completed");
+    
+  } catch (err) {
+    console.error("❌ Logout failed with error:", err);
+  }
+};
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -97,15 +145,16 @@ const SettingsMainScreen: React.FC = () => {
 
       {/* profile card */}
       <View style={styles.profileCardContainer}>
+        <View style={styles.profileImageContainer}>
         {currentUser?.profileImageUrl ? (
-          <ProfileImagePicker imageUri={currentUser?.profileImageUrl} />
-        ) : (
-          <Ionicons
-            name="person-circle"
-            size={110}
-            color={Colors.textThirdly}
+          <Image
+            source={{ uri: currentUser.profileImageUrl }}
+            style={styles.profileImage}
           />
+        ) : (
+          <Ionicons name="person" size={80} color={Colors.textSecondary} />
         )}
+        </View>
         <Text style={styles.nameTitle}>
           {currentUser?.name && currentUser.lastName
             ? `${currentUser.name} ${currentUser.lastName}`
@@ -161,13 +210,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   profileCardContainer: {
-    flex: 2,
-    width: "100%",
+    alignItems: "center",
+    paddingVertical: 24,
+    position: "relative",
+    borderWidth: 0,
+  },
+
+  profileImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: Colors.backgroundGray,
     justifyContent: "center",
     alignItems: "center",
-
-    // borderWidth: 2,
-    borderColor: "orange",
+    borderWidth: 0.5,
+    borderColor: Colors.filterActiveBg,
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: Colors.backgroundGray,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderColor: Colors.filterActiveBg,
+    overflow: "hidden",
+    marginBottom: 10,
   },
   actionsContainer: {
     flex: 4,

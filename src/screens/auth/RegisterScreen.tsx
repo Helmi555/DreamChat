@@ -38,11 +38,11 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const onExitPress = () => BackHandler.exitApp();
-  const db = firebase.database();
   const { setCurrentUser } = useUser();
   const onSubmitPress = async () => {
+    setLoading(true);
     if (!username || !password || !confirmPassword) {
       setError("All fields are required.");
       return;
@@ -80,11 +80,8 @@ export default function SignUpScreen() {
       const newUser: User = {
         id: user.uid,
         email: user.email!,
-        pseudo: undefined,
-        name: "", // optional: collect from form
-        lastName: "",
-        phoneNumber: "",
-        profileImageUrl: "",
+        isActive: true,
+        lastActiveAt: Date.now(),
       };
 
       // 3️⃣ Store profile in Realtime DB
@@ -108,8 +105,12 @@ export default function SignUpScreen() {
       } else {
         setError(error.message);
       }
+    }finally{
+      setLoading(false);
     }
-  };
+
+
+  }
 
   const onLoginPress = () => navigation.replace("Login");
 
@@ -144,6 +145,7 @@ export default function SignUpScreen() {
                     />
                     <TextInput
                       style={styles.input}
+                      keyboardType="email-address"
                       placeholder="Enter email"
                       placeholderTextColor={Colors.textThirdly}
                       value={username}
@@ -226,7 +228,7 @@ export default function SignUpScreen() {
                       onPress={onSubmitPress}
                       width="45%"
                       height={46}
-                      loading={false}
+                      loading={loading}
                     />
                   </View>
                 </View>

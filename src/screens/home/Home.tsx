@@ -1,12 +1,11 @@
 import React from "react";
 import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
 import { StyleSheet } from "react-native";
-import GroupScreen from "./GroupScreen";
-import MyAccountScreen from "./MyAccountScreen";
-//import ListScreen from "./ChatsScreen";
+import SettingsStack from "./Settings";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../colors";
-import MessagesScreen from "./messages/MessagesScreen";
+import Chats from "./Chats";
+import ProfilesStack from "./Profiles";
 
 const Tab = createMaterialBottomTabNavigator();
 
@@ -32,8 +31,8 @@ const Home: React.FC = () => {
       
     >
       <Tab.Screen
-        name="List"
-        component={MessagesScreen}
+        name="Chats"
+        component={Chats}
         options={{
           title: "Settings",
           tabBarIcon: ({ color }) => (
@@ -42,8 +41,8 @@ const Home: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Groups"
-        component={GroupScreen}
+        name="Profiles"
+        component={ProfilesStack}
         options={{
           tabBarIcon: ({ color }) => (
             <Ionicons name="people" size={24} color={color} />
@@ -52,7 +51,7 @@ const Home: React.FC = () => {
       />
       <Tab.Screen
         name="Settings"
-        component={MyAccountScreen}
+        component={SettingsStack}
         
         options={{
           tabBarIcon: ({ color }) => (

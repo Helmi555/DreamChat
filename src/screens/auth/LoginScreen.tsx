@@ -34,37 +34,62 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-const { setCurrentUser } = useUser();
+  const { setCurrentUser } = useUser();
 
+  const onSubmitPress = async () => {
+    setIsLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        username,
+        password
+      );
+      const firebaseUser = userCredential.user;
 
-const onSubmitPress = async () => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, username, password);
-    const firebaseUser = userCredential.user;
+      // Fetch full profile
+      const snapshot = await db.ref(`profiles/${firebaseUser.uid}`).get();
+      let fullProfile: User;
 
-    // Fetch full profile
-    const snapshot = await db.ref(`profiles/${firebaseUser.uid}`).get();
-    const fullProfile = snapshot.exists() ? (snapshot.val() as User) : {
-      id: firebaseUser.uid,
-      email: firebaseUser.email!,
-    };
+      if (snapshot.exists()) {
+        fullProfile = snapshot.val() as User;
+      } else {
+        fullProfile = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email!,
+          isActive: true,
+          lastActiveAt: Date.now(),
+        };
+      }
 
-    if (rememberMe) {
-      await AsyncStorage.setItem(rememberedUserKey, JSON.stringify(fullProfile));
-      console.info("Login , user saved locally by ",JSON.stringify(fullProfile))
+      fullProfile.isActive = true;
+      fullProfile.lastActiveAt = Date.now();
+
+      await db.ref(`profiles/${firebaseUser.uid}`).set(fullProfile);
+
+      if (rememberMe) {
+        await AsyncStorage.setItem(
+          rememberedUserKey,
+          JSON.stringify(fullProfile)
+        );
+        console.info(
+          "Login , user saved locally by ",
+          JSON.stringify(fullProfile)
+        );
+      }
+
+      setCurrentUser(fullProfile); // update context
+      navigation.replace("Home");
+    } catch {
+      setError("Invalid email or password.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setCurrentUser(fullProfile); // update context
-    navigation.replace("Home");
-  } catch {
-    setError("Invalid email or password.");
-  }
-};
-useEffect(() => {
-  console.log("Remember Me is now:", rememberMe);
-}, [rememberMe]);
-
+  };
+  useEffect(() => {
+    console.log("Remember Me is now:", rememberMe);
+  }, [rememberMe]);
 
   const onSignUpPress = () => navigation.navigate("Register");
 
@@ -178,7 +203,7 @@ useEffect(() => {
                       onPress={onSubmitPress}
                       width="40%"
                       height={46}
-                      loading={false}
+                      loading={isLoading}
                       iconSize={26}
                     />
                   </View>
