@@ -8,16 +8,18 @@ interface SettingsRowProps {
   title: string;
   description?: string;
   onPress?: () => void;
+  iconColor?: string;
+  titleColor?: string;
 }
 
-const SettingsRow = ({ iconName, title, description, onPress }: SettingsRowProps) => {
+const SettingsRow = ({ iconName, title, description, onPress, iconColor="#04b97f", titleColor=Colors.textPrimary }: SettingsRowProps) => {
   return (
     <TouchableOpacity style={styles.container} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.iconContainer}>
-        <Ionicons name={iconName} size={22} color="#04b97f" />
+        <Ionicons name={iconName} size={22} color={iconColor} />
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
         {description ? <Text style={styles.description}>{description}</Text> : null}
       </View>
     </TouchableOpacity>
@@ -45,7 +47,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.textPrimary,
   },
   description: {
     fontSize: 13,

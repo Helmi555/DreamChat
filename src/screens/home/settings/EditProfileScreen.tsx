@@ -101,7 +101,7 @@ const EditProfileScreen: React.FC = () => {
       return;
     }
 
-    if (!(await isPseudoAvailable(pseudo, currentUser.id))) {
+    if (pseudo && !(await isPseudoAvailable(pseudo, currentUser.id))) {
       Alert.alert("Error", `Pseudo '${pseudo}' is already taken`);
       return;
     }

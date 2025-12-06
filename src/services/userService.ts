@@ -19,7 +19,6 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
   return null;
 };
 
-// ✅ Update specific fields of user profile
 export const updateUserProfile = async (
   userId: string,
   updates: Partial<User>
@@ -27,7 +26,6 @@ export const updateUserProfile = async (
   await update(ref(db, PROFILES + `${userId}`), updates);
 };
 
-// ✅ Check if pseudo is unique (not used by another user)
 export const isPseudoAvailable = async (
   pseudo: string,
   currentUserId: string

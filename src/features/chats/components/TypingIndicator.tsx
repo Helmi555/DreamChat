@@ -5,9 +5,10 @@ import CircleAvatar from "features/shared/components/elements/CircleAvatar";
 interface TypingIndicatorProps {
   profileImage?: string;
   letter: string;
+  showAvatar?: boolean;
 }
 
-const TypingIndicator: React.FC<TypingIndicatorProps> = ({ profileImage, letter }) => {
+const TypingIndicator: React.FC<TypingIndicatorProps> = ({ profileImage, letter, showAvatar = true }) => {
   const dot1 = React.useRef(new Animated.Value(0.3)).current;
   const dot2 = React.useRef(new Animated.Value(0.3)).current;
   const dot3 = React.useRef(new Animated.Value(0.3)).current;
@@ -76,11 +77,11 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = ({ profileImage, letter 
 
   return (
     <View style={styles.container}>
-      {profileImage ? (
+      {showAvatar && (profileImage ? (
         <CircleAvatar imageUrl={profileImage} size={30} />
       ) : (
         <CircleAvatar letter={letter} size={30} colors={["#6A5ACD", "#836FFF"]} />
-      )}
+      ))}
       <View style={styles.dotsContainer}>
         <Animated.View style={[styles.dot, { opacity: dot1 }]} />
         <Animated.View style={[styles.dot, { opacity: dot2 }]} />

@@ -9,7 +9,6 @@ import { Ionicons } from "@expo/vector-icons";
 interface MessageItemProps {
   message: Message;
   isSender: boolean;
-  senderProfileImage?: string;
   receiverProfileImage?: string;
   secondUserName: string;
   seen?: boolean;

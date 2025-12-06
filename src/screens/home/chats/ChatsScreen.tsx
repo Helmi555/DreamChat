@@ -30,7 +30,7 @@ const ChatsScreen: React.FC = () => {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, User>>({});
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "unread" | "groups">("all");
+  const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
   const { currentUser } = useUser();
   const navigation =
     useNavigation<
@@ -40,28 +40,37 @@ const ChatsScreen: React.FC = () => {
   useEffect(() => {
     const discussionsRef = ref(db, "All_Discussions");
 
-      const handleDiscussionsSnapshot = (snapshot: any) => {
+    const handleDiscussionsSnapshot = (snapshot: any) => {
       const discussionsData = snapshot.val();
       const fetchedDiscussions: Discussion[] = [];
-    
+
       if (discussionsData) {
         Object.keys(discussionsData).forEach((discussionId) => {
           const discussion = discussionsData[discussionId];
-    
+
           // Ensure participantIds exists and is an array
-          if (Array.isArray(discussion.participantIds) && discussion.participantIds.includes(currentUser?.id)) {
+          if (
+            Array.isArray(discussion.participantIds) &&
+            discussion.participantIds.includes(currentUser?.id)
+          ) {
+            // ensure the discussion object has its id (snapshot key)
+            try {
+              discussion.id = discussionId;
+            } catch (e) {
+              // noop
+            }
             fetchedDiscussions.push(discussion);
           }
         });
-    
+
         console.info("[Chats] fetched discussions are ", fetchedDiscussions);
-    
+
         fetchedDiscussions.sort(
           (a, b) =>
             (b.lastMessageTimestamp || 0) - (a.lastMessageTimestamp || 0)
         );
       }
-    
+
       setDiscussions(fetchedDiscussions);
     };
 
@@ -100,17 +109,22 @@ const ChatsScreen: React.FC = () => {
     };
   }, [discussions, currentUser?.id]);
 
-  const filteredChats = discussions.filter((chat) => {
-    if (search.trim() === "") {
-      return true; // Include all chats if search is empty
-    }
+  const userId = currentUser?.id || "";
+
+  // Apply search first, then the read/unread filter correctly.
+  const filteredBySearch = discussions.filter((chat) => {
+    if (search.trim() === "") return true;
     const lastText = chat.lastMessageText?.toLowerCase() ?? "";
     return lastText.includes(search.toLowerCase());
   });
 
-  useEffect(() => {
-    //console.log("Filtered Chats:", filteredChats); // Log filtered chats whenever they change
-  }, [filteredChats]);
+  const filteredChats = filteredBySearch.filter((chat) => {
+    if (filter === "all") return true;
+    const isRead = chat.readBy?.[userId] === true;
+    if (filter === "unread") return !isRead;
+    if (filter === "read") return isRead;
+    return true;
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -167,7 +181,7 @@ const ChatsScreen: React.FC = () => {
       </View>
 
       <View style={styles.filterRow}>
-        {["all", "unread", "groups"].map((item) => (
+        {["all", "read", "unread"].map((item) => (
           <TouchableOpacity
             key={item}
             style={[
@@ -223,11 +237,14 @@ const ChatsScreen: React.FC = () => {
               );
               const otherUser = otherUserId ? usersMap[otherUserId] : null;
 
+              const isRead = item.readBy?.[userId] === true;
+              const isUnread = !isRead;
+
               return (
                 <ChatItem
                   discussion={item}
                   otherUser={otherUser}
-                  isUnread={item.readBy[currentUser?.id || ""] === false}
+                  isUnread={isUnread}
                   onPress={() => {
                     const userString = JSON.stringify(otherUser);
                     navigation.navigate("ConversationScreen", {
@@ -240,7 +257,7 @@ const ChatsScreen: React.FC = () => {
             }}
           />
         ) : (
-          <Text style={styles.emptySection}>No Chats Available</Text>
+          <Text style={styles.emptySection}>No {filter[0].toUpperCase()+filter.slice(1)} Chats Available</Text>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>

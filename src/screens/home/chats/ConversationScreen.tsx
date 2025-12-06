@@ -328,7 +328,6 @@ const ConversationScreen: React.FC = () => {
                   secondUser.name ? secondUser.name : secondUser.email
                 }
                 isSender={message.senderId === currentUser?.id}
-                senderProfileImage={currentUser?.profileImageUrl}
                 receiverProfileImage={secondUser.profileImageUrl}
                 seen={
                   discussion?.readBy[secondUser.id] === true &&

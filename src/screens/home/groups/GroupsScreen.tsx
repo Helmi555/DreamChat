@@ -19,8 +19,6 @@ import firebase, { auth, db } from "configs/firebase";
 import { User } from "types/User";
 import { Group } from "types/Group";
 import { useNavigation } from "@react-navigation/native";
-import ProfileItem from "features/profiles/components/ProfileItem";
-import ProfileModal from "features/profiles/components/ProfileModal";
 import { useUser } from "context/UserContext";
 import { generateDiscussionId, messagesService } from "services/messageService";
 import GroupItem from "features/groups/components/GroupItem";
@@ -221,7 +219,17 @@ const GroupsScreen: React.FC = () => {
         <FlatList
           data={filteredGroups}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <GroupItem group={item}  />}
+          renderItem={({ item }) => (
+            <GroupItem
+              group={item}
+              onPress={() =>
+                (navigation as any).navigate("GroupConversationScreen", {
+                  groupId: item.id,
+                  groupName: item.name,
+                })
+              }
+            />
+          )}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No groups found.</Text>
           }
@@ -232,7 +240,7 @@ const GroupsScreen: React.FC = () => {
       {/* Floating Button */}
       <TouchableOpacity
         style={styles.floatingButton}
-        onPress={() => navigation.navigate("CreateGroupScreen" as never)}
+        onPress={() => (navigation as any).navigate("CreateGroupScreen")}
       >
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
