@@ -123,7 +123,6 @@ export default function LoadingScreen({ navigation }: LoadingScreenProps) {
                 e
               );
             }
-            // END NEW
           } catch (dbError) {
             console.error("❌ Database update failed:", dbError);
           }

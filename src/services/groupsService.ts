@@ -1,5 +1,5 @@
 import { db } from "configs/firebase";
-import { MessageType } from "types/Chat";
+import { MessageType, ReactionType } from "types/Chat";
 import { Group, GroupMessage, Invitation } from "types/Group";
 
 const GROUPS_PATH = "All_Groups";
@@ -177,5 +177,38 @@ export const groupsService = {
 
     invitationsRef.on("value", handleSnapshot);
     return () => invitationsRef.off("value", handleSnapshot);
+  },
+  
+   async addReaction(
+    groupId: string,
+    messageId: string,
+    userId: string,
+    reaction: ReactionType
+  ): Promise<void> {
+    try {
+      await db.ref(
+        `All_Groups/${groupId}/groupMessages/${messageId}/reactions/${userId}`
+      ).set(reaction);
+      console.log(`✅ ${userId} reacted with ${reaction} in group`);
+    } catch (error) {
+      console.error("❌ Error adding group reaction:", error);
+      throw error;
+    }
+  },
+
+  async removeReaction(
+    groupId: string,
+    messageId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      await db.ref(
+        `All_Groups/${groupId}/groupMessages/${messageId}/reactions/${userId}`
+      ).remove();
+      console.log(`✅ ${userId} removed reaction from group`);
+    } catch (error) {
+      console.error("❌ Error removing group reaction:", error);
+      throw error;
+    }
   },
 };

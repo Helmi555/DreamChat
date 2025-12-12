@@ -29,6 +29,13 @@ import ChangeBackgroundModal from "features/chats/elements/ChangeBackgroundModal
 import * as ImagePicker from "expo-image-picker";
 import { uploadDiscussionBackgroundImage } from "services/supabaseImageService";
 
+// Support different expo-image-picker versions: prefer `ImagePicker.MediaType.Images`
+// when available; otherwise fall back to a plain array of strings to avoid the
+// `MediaTypeOptions` deprecation warning at runtime.
+const IMAGES_MEDIA_TYPE: any = (ImagePicker as any).MediaType?.Images ?? [
+  "Images",
+];
+
 const ConversationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -157,6 +164,49 @@ const ConversationScreen: React.FC = () => {
     }
   };
 
+  const pickAndSendImage = async () => {
+    try {
+      if (!currentUser) return;
+
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Permission to access the image library is required!"
+        );
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (pickerResult.canceled) return;
+
+      const uri = pickerResult.assets[0].uri;
+
+      await messagesService.sendMediaMessage(
+        discussionId,
+        currentUser.id,
+        secondUser.id,
+        uri,
+        "image"
+      );
+
+      setTimeout(() => {
+        if (scrollViewRef.current)
+          scrollViewRef.current.scrollToEnd({ animated: true });
+      }, 200);
+    } catch (error) {
+      console.error("Error sending image:", error);
+      Alert.alert("Error", "Failed to send image. Please try again.");
+    }
+  };
+
   useEffect(() => {
     if (currentUser && discussionId) {
       messagesService.markDiscussionAsRead(discussionId, currentUser.id);
@@ -193,7 +243,6 @@ const ConversationScreen: React.FC = () => {
       }
 
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: "images",
         allowsEditing: true,
         quality: 1,
       });
@@ -333,6 +382,7 @@ const ConversationScreen: React.FC = () => {
                   discussion?.readBy[secondUser.id] === true &&
                   index === messages.length - 1
                 }
+                discussionId={discussionId} // ADD THIS LINE
               />
             ))}
 
@@ -353,6 +403,12 @@ const ConversationScreen: React.FC = () => {
           </ScrollView>
 
           <View style={styles.inputRow}>
+            <TouchableOpacity
+              style={styles.imageBtn}
+              onPress={pickAndSendImage}
+            >
+              <Ionicons name="image" size={22} color={Colors.primaryGreen} />
+            </TouchableOpacity>
             <TextInput
               style={[styles.input, { height: Math.min(inputHeight, 80) }]}
               placeholder="Type a message"
@@ -401,7 +457,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   headerRight: {
-    width: 110,
+    width: 120,
     flexDirection: "row",
     justifyContent: "space-around",
     borderWidth: 0,
@@ -449,5 +505,12 @@ const styles = StyleSheet.create({
   sendText: {
     color: "#ffffff",
     fontWeight: "600",
+  },
+  imageBtn: {
+    marginRight: 8,
+    padding: 8,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

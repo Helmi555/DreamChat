@@ -20,6 +20,7 @@ import { User } from "types/User";
 import ProfileItem from "features/profiles/components/ProfileItem";
 import { useUser } from "context/UserContext";
 import { useNavigation } from "@react-navigation/native";
+import { Group } from "types/Group";
 
 type SearchType = "all" | "name" | "email" | "phone" | "pseudo";
 
@@ -107,10 +108,14 @@ const CreateGroupScreen = () => {
 
     const groupId = firebase.database().ref("All_Groups").push().key;
 
-    const newGroup = {
+    const newGroup:Group = {
       id: groupId,
       name: groupName,
-      memberIds: [currentUser?.id, ...selectedUsers.map((user) => user.id)],
+      memberIds: [currentUser?.id || "", ...selectedUsers.map((user) => user.id)],
+      createdBy: currentUser?.id || "",
+      createdAt: Date.now(),
+      groupMessages: {},
+      typing: {},
     };
 
     firebase

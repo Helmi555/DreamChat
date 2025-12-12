@@ -11,6 +11,7 @@ export interface GroupMessage {
     [userId: string]: ReactionType;
   };
   imageUrl?: string;
+  fileUrl?: string;
 }
 export interface Group {
   id: string;

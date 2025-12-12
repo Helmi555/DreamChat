@@ -98,3 +98,44 @@ export const uploadDiscussionBackgroundImage = async (
     throw error;
   }
 };
+
+export const uploadConversationMedia = async (
+  discussionId: string,
+  messageId: string,
+  imageUri: string,
+  type: 'image' | 'audio' | 'file' = 'image'
+): Promise<string> => {
+  try {
+    const extension = type === 'audio' ? 'm4a' : 
+                    type === 'file' ? 'pdf' : 'jpg';
+    const fileName = `${type}-${Date.now()}.${extension}`;
+    const filePath = `${discussionId}/${messageId}/${fileName}`;
+
+    const base64 = await FileSystem.readAsStringAsync(imageUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    const arrayBuffer = decode(base64);
+
+    const contentType = type === 'audio' ? 'audio/m4a' : 
+                       type === 'file' ? 'application/pdf' : 'image/jpeg';
+
+    const { error } = await supabase.storage
+      .from('conversation-media')
+      .upload(filePath, arrayBuffer, {
+        contentType,
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('conversation-media')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error("Upload conversation media error:", error);
+    throw error;
+  }
+};

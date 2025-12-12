@@ -6,6 +6,11 @@ import {
   ReactionType,
   MessageStatus,
 } from "types/Chat";
+import { uploadConversationMedia } from "./supabaseImageService";
+import * as FileSystem from "expo-file-system";
+import { decode } from "base64-arraybuffer";
+import { supabase } from "configs/supabase";
+import { GroupMessage } from "types/Group";
 
 const DISCUSSIONS_PATH = "All_Discussions";
 const MESSAGES_PATH = "messages";
@@ -39,38 +44,37 @@ export const getOtherParticipantId = (
   return ids[0] === currentUserId ? ids[1] : ids[0];
 };
 
-
-
 export const messagesService = {
   // Send a message (auto-creates discussion if first message)
 
-async createDiscussion(
-  senderId: string,
-  receiverId: string
-): Promise<string> {
-  const generatedDiscussionId = generateDiscussionId(senderId, receiverId);
-  const discussionRef = db.ref(`${DISCUSSIONS_PATH}/${generatedDiscussionId}`);
-  const snapshot = await discussionRef.once("value");
+  async createDiscussion(
+    senderId: string,
+    receiverId: string
+  ): Promise<string> {
+    const generatedDiscussionId = generateDiscussionId(senderId, receiverId);
+    const discussionRef = db.ref(
+      `${DISCUSSIONS_PATH}/${generatedDiscussionId}`
+    );
+    const snapshot = await discussionRef.once("value");
 
-  if (!snapshot.exists()) {
-    const newDiscussion: Discussion = {
-      id: generatedDiscussionId,
-      participantIds: [senderId, receiverId],
-      messages: {},
-      lastMessageTimestamp: Date.now(),
-      lastMessageSenderId: senderId,
-      readBy: { [senderId]: true, [receiverId]: false },
-      backgroundImageUrl:null,
-      lastMessageText:null,
-      typing:{},
+    if (!snapshot.exists()) {
+      const newDiscussion: Discussion = {
+        id: generatedDiscussionId,
+        participantIds: [senderId, receiverId],
+        messages: {},
+        lastMessageTimestamp: Date.now(),
+        lastMessageSenderId: senderId,
+        readBy: { [senderId]: true, [receiverId]: false },
+        backgroundImageUrl: null,
+        lastMessageText: null,
+        typing: {},
+      };
+      await discussionRef.set(newDiscussion);
+      console.log(`✅ New discussion created: ${generatedDiscussionId}`);
+    }
 
-    };
-    await discussionRef.set(newDiscussion);
-    console.log(`✅ New discussion created: ${generatedDiscussionId}`);
-  }
-
-  return generatedDiscussionId;
-},
+    return generatedDiscussionId;
+  },
 
   async sendMessage(
     discussionId: string,
@@ -82,7 +86,6 @@ async createDiscussion(
   ): Promise<string> {
     try {
       const messageId = db.ref().child(MESSAGES_PATH).push().key;
-
       if (!messageId) throw new Error("Failed to generate message ID");
 
       const message: Message = {
@@ -93,44 +96,133 @@ async createDiscussion(
         type,
         timestamp: Date.now(),
         status: "delivered",
+        ...(fileUrl && type !== 'text' && { fileUrl }) // Add fileUrl for non-text
       };
 
-      // Check if discussion exists, create if not
       const discussionRef = db.ref(`${DISCUSSIONS_PATH}/${discussionId}`);
       const snapshot = await discussionRef.once("value");
 
       if (!snapshot.exists()) {
-        // Create new discussion
         const newDiscussion: Discussion = {
-          id: discussionId, // Ensure the correct ID is used here
+          id: discussionId,
           participantIds: [senderId, receiverId],
           messages: { [messageId]: message },
-          lastMessageText: messageBody,
+          lastMessageText: type === 'text' ? messageBody : `Sent a ${type}`,
           lastMessageTimestamp: Date.now(),
           lastMessageSenderId: senderId,
           readBy: { [senderId]: true, [receiverId]: false },
+          backgroundImageUrl: null,
+          typing: {},
         };
         await discussionRef.set(newDiscussion);
-        console.log(`✅ New discussion created: ${discussionId}`);
+      } else {
+        // Save message
+        await db.ref(`${DISCUSSIONS_PATH}/${discussionId}/messages/${messageId}`).set(message);
+        
+        // Update discussion
+        await db.ref(`${DISCUSSIONS_PATH}/${discussionId}`).update({
+          lastMessageText: type === 'text' ? messageBody : `Sent a ${type}`,
+          lastMessageTimestamp: Date.now(),
+          lastMessageSenderId: senderId,
+          [`readBy/${senderId}`]: true,
+          [`readBy/${receiverId}`]: false,
+        });
       }
 
-      // Save message to discussion
-      await db
-        .ref(`${DISCUSSIONS_PATH}/${discussionId}/messages/${messageId}`)
-        .set(message);
-
-      // Update discussion last message
-      await db.ref(`${DISCUSSIONS_PATH}/${discussionId}`).update({
-        lastMessageText: messageBody,
-        lastMessageTimestamp: Date.now(),
-        lastMessageSenderId: senderId,
-        readBy: { [senderId]: true, [receiverId]: false },
-      });
-
-      console.log(`✅ Message sent to discussion: ${discussionId}`);
       return messageId;
     } catch (error) {
       console.error("❌ Error sending message:", error);
+      throw error;
+    }
+  },
+  async sendGroupMediaMessage(
+  groupId: string,
+  senderId: string,
+  fileUri: string,
+  type: 'image' | 'audio' | 'file',
+  caption?: string
+): Promise<string> {
+  try {
+    const messageId = db.ref().child("groupMessages").push().key;
+    if (!messageId) throw new Error("Failed to generate message ID");
+
+    // Upload to group-media bucket
+    const fileName = `${type}-${Date.now()}.${type === 'audio' ? 'm4a' : 'jpg'}`;
+    const filePath = `${groupId}/${messageId}/${fileName}`;
+    
+    const base64 = await FileSystem.readAsStringAsync(fileUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const arrayBuffer = decode(base64);
+    
+    const contentType = type === 'audio' ? 'audio/m4a' : 'image/jpeg';
+    
+    const { error } = await supabase.storage
+      .from('conversation-media') // Same bucket
+      .upload(filePath, arrayBuffer, { contentType });
+    
+    if (error) throw error;
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('conversation-media')
+      .getPublicUrl(filePath);
+
+    // Create group message
+    const message: GroupMessage = {
+      idMessage: messageId,
+      messageBody: caption || `Sent a ${type}`,
+      senderId,
+      receiverId: groupId,
+      timestamp: Date.now(),
+      type,
+      status: "delivered",
+      fileUrl: publicUrl,
+    };
+
+    await db.ref(`All_Groups/${groupId}/groupMessages/${messageId}`).set(message);
+    await db.ref(`All_Groups/${groupId}`).update({
+      lastMessageText: `Sent a ${type}`,
+      lastMessageTimestamp: Date.now(),
+      lastMessage: senderId,
+    });
+
+    return messageId;
+  } catch (error) {
+    console.error("❌ Error sending group media:", error);
+    throw error;
+  }
+},
+async sendMediaMessage(
+    discussionId: string,
+    senderId: string,
+    receiverId: string,
+    fileUri: string,
+    type: 'image' | 'audio' | 'file',
+    caption?: string
+  ): Promise<string> {
+    try {
+      const messageId = db.ref().child(MESSAGES_PATH).push().key;
+      if (!messageId) throw new Error("Failed to generate message ID");
+
+      // 1. Upload to Supabase
+      const fileUrl = await uploadConversationMedia(
+        discussionId, 
+        messageId, 
+        fileUri, 
+        type
+      );
+
+      // 2. Send message with URL
+      return await this.sendMessage(
+        discussionId,
+        senderId,
+        receiverId,
+        caption || `Sent a ${type}`,
+        type,
+        fileUrl
+      );
+    } catch (error) {
+      console.error("❌ Error sending media:", error);
       throw error;
     }
   },
@@ -228,7 +320,6 @@ async createDiscussion(
     }
   },
 
-  // Remove reaction
   async removeReaction(
     discussionId: string,
     messageId: string,
@@ -246,8 +337,6 @@ async createDiscussion(
       throw error;
     }
   },
-
-  // Set typing status
   async setTyping(
     discussionId: string,
     userId: string,
@@ -282,10 +371,14 @@ async createDiscussion(
     isTyping: boolean
   ): Promise<void> {
     try {
-      console.info("[Setting Typing] conversationId: ",discussionId,"userId: ",userId)
+      console.info(
+        "[Setting Typing] conversationId: ",
+        discussionId,
+        "userId: ",
+        userId
+      );
       if (!discussionId || !userId) {
         throw new Error("Discussion ID and User ID are required");
-      
       }
       const typingUpdate: any = {};
       typingUpdate[`typing/${userId}`] = isTyping;

@@ -39,6 +39,7 @@ export default function LoginScreen() {
   const { setCurrentUser } = useUser();
 
   const onSubmitPress = async () => {
+    Keyboard.dismiss();
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(

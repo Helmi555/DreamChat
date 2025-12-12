@@ -26,6 +26,15 @@ import MessageItem from "features/chats/components/MessageItem";
 import TypingIndicator from "features/chats/components/TypingIndicator";
 import ChangeBackgroundModal from "features/chats/elements/ChangeBackgroundModal";
 import * as ImagePicker from "expo-image-picker";
+import { messagesService } from "services/messageService";
+
+// Support different expo-image-picker versions (runtime-safe)
+// Prefer the new `ImagePicker.MediaType.Images` when available; otherwise
+// fall back to a safe plain array/string so the picker doesn't log the
+// deprecation for `MediaTypeOptions` at runtime.
+const IMAGES_MEDIA_TYPE: any = (ImagePicker as any).MediaType?.Images ?? [
+  "Images",
+];
 import { uploadDiscussionBackgroundImage } from "services/supabaseImageService";
 import CircleAvatar from "features/shared/components/elements/CircleAvatar";
 
@@ -102,7 +111,6 @@ const GroupConversationScreen: React.FC = () => {
     return () => unsub.forEach((u) => u());
   }, [group?.memberIds]);
 
-
   useEffect(() => {
     if (isAtBottom && scrollViewRef.current) {
       setTimeout(
@@ -128,7 +136,6 @@ const GroupConversationScreen: React.FC = () => {
       hideSubscription.remove();
     };
   }, []);
-
 
   // Auto-scroll when messages or typing flags change, only if user is at bottom
   useEffect(() => {
@@ -191,7 +198,6 @@ const GroupConversationScreen: React.FC = () => {
         return;
       }
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 1,
       });
@@ -205,6 +211,48 @@ const GroupConversationScreen: React.FC = () => {
       await db.ref(`All_Groups/${groupId}`).update({ imageUrl: newUrl });
     } catch (err) {
       console.error("Error changing background image:", err);
+    }
+  };
+
+  const pickAndSendGroupImage = async () => {
+    try {
+      if (!currentUser) return;
+
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Permission to access the image library is required!"
+        );
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (pickerResult.canceled) return;
+
+      const uri = pickerResult.assets[0].uri;
+
+      await messagesService.sendGroupMediaMessage(
+        groupId,
+        currentUser.id,
+        uri,
+        "image"
+      );
+
+      setTimeout(
+        () => scrollViewRef.current?.scrollToEnd({ animated: true }),
+        200
+      );
+    } catch (err) {
+      console.error("Error sending group image:", err);
+      Alert.alert("Error", "Failed to send image. Please try again.");
     }
   };
 
@@ -241,6 +289,12 @@ const GroupConversationScreen: React.FC = () => {
           </View>
 
           <View style={styles.headerRight}>
+            <TouchableOpacity>
+              <Ionicons name="videocam" size={24} color={Colors.primaryGreen} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Ionicons name="call" size={24} color={Colors.primaryGreen} />
+            </TouchableOpacity>
             <TouchableOpacity onPress={handleOpenModal}>
               <Ionicons name="ellipsis-vertical" size={24} color={"#000"} />
             </TouchableOpacity>
@@ -255,8 +309,8 @@ const GroupConversationScreen: React.FC = () => {
 
         <KeyboardAvoidingView
           style={{ flex: 1, zIndex: 1000 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+          behavior={"padding"}
+          keyboardVerticalOffset={0}
         >
           <ScrollView
             ref={scrollViewRef}
@@ -264,18 +318,31 @@ const GroupConversationScreen: React.FC = () => {
             overScrollMode="never"
             showsVerticalScrollIndicator={false}
             style={styles.messages}
-            contentContainerStyle={{ paddingVertical: 12, paddingBottom: 10 }}
+            contentContainerStyle={{
+              paddingVertical: 12,
+              paddingBottom: 10 + insets.bottom,
+            }}
+            onContentSizeChange={() => {
+              if (!keyboardVisible && scrollViewRef.current) {
+                scrollViewRef.current.scrollToEnd({ animated: false });
+              }
+            }}
             keyboardShouldPersistTaps="handled"
           >
             {messages.map((message) => (
               <MessageItem
+                isGroup={true}
+                groupId={groupId}
+                discussionId={message.idMessage}
                 key={message.idMessage}
                 message={message}
                 secondUserName={
                   membersMap[message.senderId]?.name || message.senderId
                 }
                 isSender={message.senderId === currentUser?.id}
-                receiverProfileImage={membersMap[message.senderId]?.profileImage}
+                receiverProfileImage={
+                  membersMap[message.senderId]?.profileImage
+                }
                 seen={false}
               />
             ))}
@@ -329,7 +396,18 @@ const GroupConversationScreen: React.FC = () => {
             <View style={{ height: 20 }} />
           </ScrollView>
 
-          <View style={styles.inputRow}>
+          <View
+            style={[
+              styles.inputRow,
+              { paddingBottom: Math.max(insets.bottom, 10) },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.imageBtn}
+              onPress={pickAndSendGroupImage}
+            >
+              <Ionicons name="image" size={22} color={Colors.primaryGreen} />
+            </TouchableOpacity>
             <TextInput
               style={[styles.input, { height: Math.min(inputHeight, 80) }]}
               placeholder="Type a message"
@@ -372,7 +450,12 @@ const styles = StyleSheet.create({
     maxWidth: "60%",
     marginHorizontal: 2,
   },
-  headerRight: { width: 80, flexDirection: "row", justifyContent: "flex-end" },
+  headerRight: {
+    width: 120,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    borderWidth: 0,
+  },
   title: { fontSize: 18, fontWeight: "700", color: "#202124" },
   messages: { flex: 1, paddingHorizontal: 12 },
   inputRow: {
@@ -401,4 +484,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryGreen,
   },
   sendText: { color: "#ffffff", fontWeight: "600" },
+  imageBtn: {
+    marginRight: 8,
+    padding: 8,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

@@ -132,7 +132,7 @@ const ProfilesScreen: React.FC = () => {
       case "pseudo":
         return "Search by username...";
       default:
-        return "Search by name, email, phone, or pseudo...";
+        return "Search by name, email or phone...";
     }
   };
 
@@ -151,25 +151,6 @@ const ProfilesScreen: React.FC = () => {
     }
   };
 
-  const handlePress = (user: User) => {
-    Keyboard.dismiss();
-    // Direct navigation to conversation - SIMPLE FLOW
-    if (!currentUser || !user) return;
-
-    // Create discussion ID by sorting user IDs
-    const discussionId = [currentUser.id, user.id].sort().join("_");
-
-    // Navigate directly to conversation
-    (navigation as any).navigate("ConversationScreen", {
-      discussionId,
-      secondUser: JSON.stringify(user),
-    });
-  };
-
-  const handleProfileSelect = (user: User) => {
-    setSelectedUser(user);
-    setShowProfileModal(true);
-  };
 
   const [selectedProfile, setSelectedProfile] = React.useState<User | null>(
     null
@@ -201,11 +182,9 @@ const ProfilesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Fixed Header */}
       <View style={styles.headerContainer}>
         <Text style={styles.title}>Profiles</Text>
 
-        {/* Search Bar with Filter Button */}
         <View style={styles.searchRow}>
           <View style={styles.searchBarContainer}>
             <Ionicons

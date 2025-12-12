@@ -1,12 +1,28 @@
-export type ReactionType = "like" | "love" | "laugh" | "sad" | "angry" | "surprised";
+export type ReactionType =
+  | "like"
+  | "love"
+  | "laugh"
+  | "sad"
+  | "angry"
+  | "surprised";
 
 export interface Reaction {
   userId: string;
   type: ReactionType;
 }
 
-export type MessageType = "text" | "image" | "file";
-export type MessageStatus =  "delivered" | "read";
+export const REACTIONS: { type: ReactionType; emoji: string; color: string }[] =
+  [
+    { type: "like", emoji: "👍", color: "#FFD700" },
+    { type: "love", emoji: "❤️", color: "#FF4081" },
+    { type: "laugh", emoji: "😂", color: "#FFD700" },
+    { type: "sad", emoji: "😢", color: "#2196F3" },
+    { type: "angry", emoji: "😠", color: "#FF5722" },
+    { type: "surprised", emoji: "😮", color: "#9C27B0" },
+  ];
+
+export type MessageType = "text" | "image" | "audio" | "file";
+export type MessageStatus = "delivered" | "read";
 
 export interface Message {
   idMessage: string;
@@ -15,6 +31,7 @@ export interface Message {
   receiverId: string;
   timestamp: number;
   type: MessageType;
+  fileUrl?: string;
   edited?: boolean;
   status?: MessageStatus;
   reactions?: { [userId: string]: ReactionType };
@@ -22,16 +39,15 @@ export interface Message {
 
 export interface Discussion {
   id: string; // e.g., "UserA_UserB"
-  participantIds: [string, string];//not needed coz the id already has both userids concat by sorted and "_"
+  participantIds: [string, string]; //not needed coz the id already has both userids concat by sorted and "_"
   backgroundImageUrl?: string | null;
-  typing?: { [userId: string]: boolean };//should be like userid_typing
+  typing?: { [userId: string]: boolean }; //should be like userid_typing
   lastMessageText?: string | null;
   lastMessageTimestamp?: number;
   lastMessageSenderId?: string;
   messages: { [idMessage: string]: Message };
-  readBy: { [userId: string]: boolean }
+  readBy: { [userId: string]: boolean };
 }
-
 
 // "All_Discussions": {
 //   "UserA_UserB": {
