@@ -9,6 +9,7 @@ DreamChat is an Expo + TypeScript mobile chat client with real-time messaging, g
 </p>
 
 Features
+
 - Realtime 1:1 chats and group chats
 - Group creation and real-time invitations
 - Direct messages, message reactions, typing indicators, and read receipts
@@ -18,6 +19,7 @@ Features
 - Theme support and basic settings
 
 Tech stack
+
 - Expo managed workflow (React Native)
 - TypeScript
 - Firebase Auth + Firebase Realtime Database (for realtime sync & presence)
@@ -25,21 +27,25 @@ Tech stack
 - React Navigation, Context API and a small services layer (src/services)
 
 Firebase (Auth + Realtime DB)
+
 - Firebase Auth manages sign-in flow (email/social/phone depending on your Firebase console setup).
 - Realtime Database is used for:
   - Presence (online/offline)
   - Typing indicators
   - Message delivery with low latency
 - Example Realtime DB structure:
+
 ```
 /users/{userId}            // profile info
 /chats/{chatId}            // participants[], lastMessage, updatedAt
 /chats/{chatId}/messages/{messageId}  // senderId, text, mediaUrl, createdAt, reactions
 /groups/{groupId}          // name, members[], pendingInvites[], metadata
 ```
+
 - Typical listeners: on('child_added') for new messages, on('value') for small data (presence).
 
 Supabase Storage (media)
+
 - Create a Supabase project and a storage bucket (recommended `chat-media`).
 - Public bucket example:
   `https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path-to-file.jpg>`
@@ -47,6 +53,7 @@ Supabase Storage (media)
 - Upload flow: client uploads media via `src/services/supabaseImageService.ts`, receives URL, attach to message object in Realtime DB.
 
 Gallery:
+
 <table>
   <tr>
     <td align="center">Loading / Splash<br/><img src="assets/screenshots/Screenshot_1765660902.png" alt="Loading screen" width="240"/></td>
@@ -61,9 +68,9 @@ Gallery:
     <td align="center">Edit Profile<br/><img src="assets/screenshots/Screenshot_1765661216.png" alt="Edit Profile" width="240"/></td>
   </tr>
   <tr>
+  <td></td>
     <td align="center">Alt Chat<br/><img src="assets/screenshots/Screenshot_1765661221.png" alt="Alt Chat" width="240"/></td>
     <td align="center">Settings<br/><img src="assets/screenshots/Screenshot_1765661246.png" alt="Settings" width="240"/></td>
-    <td></td>
     <td></td>
   </tr>
 </table>
@@ -72,22 +79,26 @@ Gallery:
 
 Quick start (development)
 Prereqs:
+
 - Node.js (>= 18)
 - npm or yarn
 - Expo CLI (optional): `npm install -g expo-cli`
 
 Clone & run:
+
 ```powershell
 git clone https://github.com/Helmi555/DreamChat.git
 cd "DreamChat"
 npm install
 npx expo start
 ```
+
 Open the Expo DevTools and run on a simulator or device.
 
 Environment variables / config
+
 - Add keys to `src/configs/firebase.js` and `src/configs/supabase.js` or use a `.env` approach and import them.
-Required keys:
+  Required keys:
 - FIREBASE_API_KEY
 - FIREBASE_AUTH_DOMAIN
 - FIREBASE_PROJECT_ID
@@ -98,6 +109,7 @@ Required keys:
 - SUPABASE_ANON_KEY
 
 Key files & structure (important)
+
 - App.tsx — Expo entry
 - src/context/UserContext.tsx — auth & session helpers
 - src/services/messageService.ts — message send/listen flow
@@ -109,6 +121,7 @@ Key files & structure (important)
 - assets/screenshots — screenshots used in README and docs
 
 Messaging & media flow (summary)
+
 - Sign in via Firebase Auth.
 - App initializes realtime listeners for chats and groups.
 - Sending a message with media:
@@ -118,15 +131,18 @@ Messaging & media flow (summary)
 - Reactions are small maps on message objects (e.g., { "❤️": ["uid1","uid2"] }).
 
 Security short notes
+
 - Do not commit service-role keys to the client.
 - Use private Supabase buckets + signed URLs for production media.
 - Limit large data within Realtime DB items to reduce network payload and costs.
 
 Contributing
+
 - Fork → Branch → PR.
 - Add or update screenshots when UI changes.
 - Consider adding `.env.example`, linting, and CI checks in future PRs.
 
 License & contact
+
 - Add a LICENSE file to the repo root (MIT recommended).
 - Maintainer: Helmi555 — https://github.com/Helmi555/DreamChat
