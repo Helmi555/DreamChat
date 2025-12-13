@@ -38,16 +38,18 @@ export interface Message {
 }
 
 export interface Discussion {
-  id: string; // e.g., "UserA_UserB"
-  participantIds: [string, string]; //not needed coz the id already has both userids concat by sorted and "_"
+  id: string; 
+  participantIds: [string, string];
   backgroundImageUrl?: string | null;
-  typing?: { [userId: string]: boolean }; //should be like userid_typing
+  typing?: { [userId: string]: boolean }; 
   lastMessageText?: string | null;
   lastMessageTimestamp?: number;
   lastMessageSenderId?: string;
   messages: { [idMessage: string]: Message };
   readBy: { [userId: string]: boolean };
 }
+
+
 
 // "All_Discussions": {
 //   "UserA_UserB": {

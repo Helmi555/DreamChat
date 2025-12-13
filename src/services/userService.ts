@@ -5,12 +5,10 @@ import firebase from "configs/firebase"; // for compat mode
 const db = firebase.database();
 const PROFILES = "profiles/";
 
-// ✅ Create or overwrite user profile
 export const saveUserProfile = async (user: User): Promise<void> => {
   await set(ref(db, PROFILES + `${user.id}`), user);
 };
 
-// ✅ Get user profile by ID
 export const getUserProfile = async (userId: string): Promise<User | null> => {
   const snapshot = await get(child(ref(db), PROFILES + `${userId}`));
   if (snapshot.exists()) {
@@ -33,14 +31,13 @@ export const isPseudoAvailable = async (
   const snapshot = await get(ref(db, PROFILES));
   if (snapshot.exists()) {
     const profiles = snapshot.val();
-    // loop through all profiles
     for (const id in profiles) {
       if (profiles[id].pseudo === pseudo && id !== currentUserId) {
-        return false; // already taken by someone else
+        return false; 
       }
     }
   }
-  return true; // available
+  return true; 
 };
 
 const userService = {

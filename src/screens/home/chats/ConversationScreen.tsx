@@ -1,4 +1,4 @@
-// ConversationScreen.tsx
+
 import React, { useEffect, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -9,7 +9,6 @@ import {
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Keyboard,
   ImageBackground,
   Alert,
@@ -29,9 +28,6 @@ import ChangeBackgroundModal from "features/chats/elements/ChangeBackgroundModal
 import * as ImagePicker from "expo-image-picker";
 import { uploadDiscussionBackgroundImage } from "services/supabaseImageService";
 
-// Support different expo-image-picker versions: prefer `ImagePicker.MediaType.Images`
-// when available; otherwise fall back to a plain array of strings to avoid the
-// `MediaTypeOptions` deprecation warning at runtime.
 const IMAGES_MEDIA_TYPE: any = (ImagePicker as any).MediaType?.Images ?? [
   "Images",
 ];
